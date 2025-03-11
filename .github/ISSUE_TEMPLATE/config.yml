@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: 📖 Solicitação de Documentação
-    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/issues/new?template=DOCUMENTATION_REQUEST_TEMPLATE.md
+    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/.github/ISSUE_TEMPLATE/new?template=DOCUMENTATION_REQUEST_TEMPLATE.md
     about: Solicite melhorias na documentação do projeto.
   - name: 🚀 Solicitação de Funcionalidade
-    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/issues/new?template=FEATURE_REQUEST_TEMPLATE.md
+    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/.github/ISSUE_TEMPLATE/new?template=FEATURE_REQUEST_TEMPLATE.md
     about: Sugira uma nova funcionalidade para o projeto.
   - name: ❓ Perguntas Gerais
-    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/issues/new?template=GENERAL_QUESTIONS_TEMPLATE.md
+    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/.github/ISSUE_TEMPLATE/new?template=GENERAL_QUESTIONS_TEMPLATE.md
     about: Faça perguntas gerais relacionadas ao projeto.
