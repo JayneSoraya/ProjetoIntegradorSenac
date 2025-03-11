@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: 🤖 Bug
+    url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/issues/new?template=BUG_REPORT_TEMPLATE.md
+    about: Relate um bug
   - name: 📖 Solicitação de Documentação
     url: https://github.com/JayneSoraya/ProjetoIntegradorSenac/issues/new?template=DOCUMENTATION_REQUEST_TEMPLATE.md
     about: Solicite melhorias na documentação do projeto.
