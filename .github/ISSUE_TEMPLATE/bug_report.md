@@ -1,43 +1,38 @@
-<h1>
-  Templante para reportar um bug
-</h1>
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
 
-name: **Bug Report**
+---
 
-about: **Reportar um bug para ajudar a melhorar o projeto**
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-title: **[BUG] Descrição breve do problema**
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-labels: **bug**
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-assignees:
+**Screenshots**
+If applicable, add screenshots to help explain your problem.
 
-# Descrição do Bug
+**Desktop (please complete the following information):**
+ - OS: [e.g. iOS]
+ - Browser [e.g. chrome, safari]
+ - Version [e.g. 22]
 
-Uma descrição clara e concisa do que é o bug.
+**Smartphone (please complete the following information):**
+ - Device: [e.g. iPhone6]
+ - OS: [e.g. iOS8.1]
+ - Browser [e.g. stock browser, safari]
+ - Version [e.g. 22]
 
-#  Passos para Reproduzir
-
-Passos para reproduzir o comportamento:
-1. Vá para '....'
-2. Clique em '....'
-3. Role para '....'
-4. Veja o erro '....'
-
-# Comportamento Esperado
-
-Uma descrição clara e concisa do que você esperava que acontecesse.
-
-# Capturas de Tela
-
-Se aplicável, adicione capturas de tela para ajudar a explicar o problema.
-
-# Ambiente
-
-* SO: [e.g. Windows, MacOS]
-* Navegador [e.g. chrome, safari]
-* Versão do Projeto [e.g. 22]
-
-# Informações Adicionais
-
-Adicione qualquer outra informação sobre o problema aqui.
+**Additional context**
+Add any other context about the problem here.
