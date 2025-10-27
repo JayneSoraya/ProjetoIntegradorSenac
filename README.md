@@ -2,7 +2,7 @@
     :construction: Projeto em construção :construction:
 </h4>
 
-# projeto integrador Centro Universitário Senac São Paulo
+# Projeto integrador Centro Universitário Senac São Paulo
  Graduação em Análise e desenvolvimento de sistemas
 
 
@@ -10,7 +10,7 @@
 * [Badges](#badges)
 * [índice]()
 * [Descrição do Projeto](#descrição-do-projeto)
-* [Status do Projeto](#status-do-projeto)
+* [Status do Projeto](#Status-do-Projeto)
 * [Funcionalidades e Demonstração da Aplicação](#funcionalidades-e-demonstração-da-aplicação)
 * [Acesso ao Projeto](#acesso-ao-projeto)
 * [Tecnologias utilizadas](#tecnologias-utilizadas)
@@ -20,13 +20,15 @@
 * [Conclusão](#conclusão)
 
 # Título e Imagem de capa
+Projeto Integrador Senac EconoWay
 
 # Badges
 
 # Índice 
 
 # Descrição do Projeto
-
+ No decorrer da graduação em análise de sistemas é desenvolvido um projeto em grupo para realizar as atividades a fim de desenvolver as habilidades e competências de forma colaborativa.
+ 
 # Status do Projeto
  :construction: Projeto em construção :construction:
  
