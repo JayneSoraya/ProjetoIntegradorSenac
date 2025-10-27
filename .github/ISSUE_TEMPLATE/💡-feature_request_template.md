@@ -1,3 +1,12 @@
+---
+name: "\U0001F4A1 FEATURE_REQUEST_TEMPLATE"
+about: Suggest an idea for this project
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <h1>
   Templante para solicitar uma funcionalidade
 </h1>

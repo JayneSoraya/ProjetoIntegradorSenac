@@ -1,3 +1,12 @@
+---
+name: "✏ GENERAL_QUESTIONS_TEMPLATE"
+about: Describe this issue template's purpose here.
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <h1>
   Templante para uma pergunta geral
 </h1>

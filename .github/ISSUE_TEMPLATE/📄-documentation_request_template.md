@@ -1,3 +1,11 @@
+---
+name: "\U0001F4C4 DOCUMENTATION_REQUEST_TEMPLATE"
+about: Describe this issue template's purpose here.
+title: ''
+labels: ''
+assignees: ''
+
+---
 
 <h1>
   Solicitação de documentação

@@ -1,3 +1,12 @@
+---
+name: "\U0001F916 Bug report"
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
+
+---
+
 <h1>
   Templante para reportar um bug
 </h1>
