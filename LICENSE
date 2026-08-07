@@ -1,0 +1,66 @@
+Projeto Econoway: Documentação e Licenciamento
+
+Este documento apresenta o Diagrama de Classes UML baseado nos requisitos funcionais e as
+diretrizes de licenciamento restritivo solicitadas para o projeto.
+
+1. Diagrama de Classes UML
+O diagrama abaixo estrutura as entidades principais, seus atributos e métodos, incluindo a lógica
+de monetização e LGPD.
+
+
+Legenda: (+) Público | (-) Privado | (#) Protegido. Associações implícitas: Supermercado 1:* PrecoHistorico *:1
+Produto.
+
+2. Licença de Uso (Restritiva e Comercial)
+Para atender à sua necessidade de manter a exclusividade do lucro e obrigar o repasse de
+melhorias, redigi uma licença do tipo "Source-Available Proprietary License".
+
+TERMOS DA LICENÇA "ECONOWAY EXCLUSIVE"
+1. PROPRIEDADE E DIREITOS AUTORAIS: Todo o código-fonte, design e lógica de negócios
+associados a este projeto são de propriedade exclusiva do autor original. O acesso ao código
+não implica em transferência de propriedade.
+2. USO NÃO COMERCIAL: Concede-se permissão para visualizar, estudar e testar o código
+para fins estritamente educacionais ou de uso pessoal. É terminantemente proibido o uso
+deste software (ou partes dele) para fins comerciais, lucro direto ou indireto por
+terceiros sem autorização prévia por escrito.
+3. REPROXIMIDADE E MELHORIAS (SHARE-ALIKE): Qualquer pessoa que modificar,
+melhorar ou corrigir o código-fonte original deve, obrigatoriamente, fornecer essas
+melhorias ao autor original de forma gratuita e imediata.
+4. MONETIZAÇÃO DERIVADA: Caso o software seja utilizado em qualquer ambiente que gere
+receita (mesmo com modificações), o operador fica obrigado a:
+Notificar o autor original.
+PrecoHistorico
++ valor: Decimal
++ dataAtualizacao: DateTime
+# idProduto: UUID
+# idMercado: UUID
++ registrarHistorico()
+
+Carrinho
++ itens: List<Item>
++ totalEstimado: Decimal
++ adicionar(Produto)
++ remover(Produto)
++ compararPrecos()
+
+MonetizacaoDados
++ idTransacao: UUID
++ valorRecebido: Decimal
++ listaContribuintes: List
++ anonimizarDados()
++ distribuirLucros()
++ gerarRelatorio()
+
+Repassar uma porcentagem de 20% de todo o lucro líquido gerado ao autor
+original (Royalty de Licenciamento).
+5. ANONIMIZAÇÃO E LGPD: O uso dos dados coletados deve seguir estritamente as regras
+de anonimização descritas na documentação técnica, sob pena de revogação imediata da
+licença.
+
+3. Regras de Negócio Aplicadas
+Cálculo de Economia: O sistema implementa a lógica de (Média dos 3 mercados mais
+caros) - (Valor do mercado escolhido) para exibir o "Valor de Economia por
+Compra".
+Distribuição de Valor: Conforme o RNF e a regra de negócio, o Modulo de Monetizacao
+identifica quais usuários contribuíram com os dados vendidos e realiza o rateio do crédito na
+carteira virtual.
