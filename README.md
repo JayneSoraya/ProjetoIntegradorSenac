@@ -4,7 +4,11 @@
 
 # Projeto integrador Centro Universitário Senac São Paulo
  Graduação em Análise e desenvolvimento de sistemas
+<<<<<<< HEAD
 
+=======
+> !IMPOTANT Atenção: Este projeto utiliza uma Licença Proprietária Restritiva (Source-Available). O uso comercial sem autorização prévia é estritamente proibido. Leia o arquivo LICENSE para mais detalhes.
+>>>>>>> master
 
 * [Título e Imagem de capa](#Título-e-Imagem-de-capa)
 * [Badges](#badges)
@@ -42,7 +46,25 @@ Projeto Integrador Senac EconoWay
 
 # Pessoas Desenvolvedoras do Projeto
 
+<<<<<<< HEAD
 # Licença
+=======
+
+# 📄 Licença e Termos de Uso
+
+[![License: Econoway Exclusive](https://img.shields.io/badge/License-Econoway%20Exclusive-red.svg)](LICENSE)
+[![Usage: Restrictive](https://img.shields.io/badge/Usage-Non--Commercial-orange.svg)](LICENSE)
+
+Este projeto está sob a licença **"Econoway Exclusive"**. O acesso ao código não concede direitos de exploração comercial.
+
+### Pontos Chave:
+*   **Uso Não Comercial:** Proibido lucro direto ou indireto sem autorização.
+*   **Royalties:** Uso comercial autorizado requer repasse de **20% do lucro líquido** ao autor.
+*   **Melhorias:** Qualquer modificação deve ser obrigatoriamente compartilhada com o autor original.
+*   **LGPD:** O sistema utiliza módulos de anonimização obrigatórios para monetização de dados.
+
+Para detalhes completos, leia o arquivo [LICENSE.md](./LICENSE).
+>>>>>>> master
 
 # Conclusão
 
