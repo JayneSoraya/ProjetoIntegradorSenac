@@ -1,3 +1,4 @@
+import 'produtos_screen.dart';
 import 'package:flutter/material.dart';
 
 class CarrinhoVazioScreen extends StatelessWidget {
@@ -45,7 +46,7 @@ class CarrinhoVazioScreen extends StatelessWidget {
             const SizedBox(height: 40),
 
             Card(
-              child: Padding(
+              child: const Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
@@ -91,9 +92,15 @@ class CarrinhoVazioScreen extends StatelessWidget {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: null,
+                onPressed: () {
+                   Navigator.pushReplacement(
+                    context, MaterialPageRoute(
+                      builder: (_) => const ProdutosScreen(),
+                      ),
+                   );
+                },
                 child: const Text(
-                  'Comparar preços',
+                  'Buscar produtos',
                 ),
               ),
             ),

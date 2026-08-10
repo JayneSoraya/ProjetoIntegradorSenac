@@ -12,6 +12,7 @@ class MercadoComparacaoDTO {
   final int itensFaltando;
 
   final bool carrinhoCompleto;
+  final double avaliacao;
 
   final List<dynamic> encontrados;
 
@@ -27,6 +28,7 @@ class MercadoComparacaoDTO {
     required this.carrinhoCompleto,
     required this.encontrados,
     required this.faltando,
+    required this.avaliacao,
   });
 
   factory MercadoComparacaoDTO.fromJson(Map<String, dynamic> json) {
@@ -44,7 +46,7 @@ class MercadoComparacaoDTO {
       itensFaltando: json['itens_faltando'] ?? 0,
 
       carrinhoCompleto: json['carrinho_completo'] ?? false,
-
+      avaliacao: (json['avaliacao'] ?? 0).toDouble(),
       encontrados: json['encontrados'] ?? [],
 
       faltando: json['faltando'] ?? [],

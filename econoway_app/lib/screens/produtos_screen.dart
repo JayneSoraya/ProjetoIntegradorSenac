@@ -1,3 +1,4 @@
+import 'package:econoway_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import '../controller/carrinho_controller.dart';
 import '../controller/produto_controller.dart';
@@ -6,6 +7,7 @@ import '../models/produto_dto.dart';
 import '../repository/produto_repository.dart';
 import 'comparacao_screen.dart';
 import 'carrinho_screen.dart';
+import 'carrinho_vazio_screen.dart';
 import '../widgets/produto_card.dart';
 
 class ProdutosScreen extends StatefulWidget {
@@ -16,17 +18,15 @@ class ProdutosScreen extends StatefulWidget {
 }
 
 class _ProdutosScreenState extends State<ProdutosScreen> {
-  // ── Controllers ────────────────────────────────────────────
   final CarrinhoController carrinho = CarrinhoController();
   final controller = ProdutoController(ProdutoRepository());
 
-  // ── Estado ─────────────────────────────────────────────────
   List<ProdutoDTO> produtos = [];
   bool carregando = true;
-  String categoriaSelecionada = 'Outros';
+
+  String categoriaSelecionada = 'Todos';
   String textoBusca = '';
 
-  // ── Ciclo de vida ──────────────────────────────────────────
   @override
   void initState() {
     super.initState();
@@ -34,13 +34,15 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
   }
 
   Future<void> carregarProdutos() async {
-    print('INICIANDO BUSCA DE PRODUTOS');
     try {
       final resultado = await controller.buscarProduto('');
-      print('TOTAL PRODUTOS: ${resultado.length}');
-      for (final p in resultado.take(5)) {
-        print('${p.nomeProduto} - ${p.preco}');
+      print('✅ Produtos carregados: ${resultado.length}');
+      if (resultado.isNotEmpty) {
+        print(
+          'Exemplo: ${resultado.first.nomeProduto} | cat: ${resultado.first.categoria}',
+        );
       }
+
       if (!mounted) return;
       setState(() {
         produtos = resultado;
@@ -92,23 +94,23 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
   // ── Build ──────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    // Loading inicial
     if (carregando) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // Filtro local por categoria + texto de busca
     final filtrados = produtos.where((p) {
       final categoriaOk =
-          categoriaSelecionada == 'Outros' ||
+          categoriaSelecionada == 'Todos' ||
           p.categoria == categoriaSelecionada;
       final buscaOk =
           textoBusca.isEmpty ||
           p.nomeProduto.toLowerCase().contains(textoBusca.toLowerCase()) ||
-          p.marca.toLowerCase().contains(textoBusca.toLowerCase());
+          (p.marca ?? '').toLowerCase().contains(textoBusca.toLowerCase());
       return categoriaOk && buscaOk;
     }).toList();
-
+    print('📦 Total produtos: ${produtos.length}');
+    print('🔍 Busca: "$textoBusca" | Categoria: "$categoriaSelecionada"');
+    print('🎯 Filtrados: ${filtrados.length}');
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -129,16 +131,20 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                         icon: const Icon(
                           Icons.shopping_cart_outlined,
                           size: 30,
-                          color: Colors.green,
+                          color: AppColors.primary,
                         ),
                         onPressed: () async {
+                          final destino = carrinho.itens.isEmpty
+                              ? const CarrinhoVazioScreen()
+                              : const CarrinhoScreen();
+
                           await Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => const CarrinhoScreen(),
-                            ),
+                            MaterialPageRoute(builder: (_) => destino),
                           );
+
                           if (!mounted) return;
+
                           setState(() {});
                         },
                       ),
@@ -149,7 +155,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
-                              color: Colors.green,
+                              color: AppColors.secondary,
                               shape: BoxShape.circle,
                             ),
                             child: Text(
@@ -173,7 +179,10 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                 onChanged: (v) => setState(() => textoBusca = v),
                 decoration: InputDecoration(
                   hintText: 'Procure por produto ou marca',
-                  prefixIcon: const Icon(Icons.search, color: Colors.green),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: AppColors.primary,
+                  ),
                   filled: true,
                   fillColor: Colors.grey.shade200,
                   border: OutlineInputBorder(
@@ -191,17 +200,23 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
+                    _categoriaChip('Todos'),
                     _categoriaChip('Outros'),
                     _categoriaChip('Alimentos'),
-                    _categoriaChip('Limpeza'),
                     _categoriaChip('Bebidas'),
+                    _categoriaChip('Higiene e Limpeza'),
+                    _categoriaChip('Carnes e Peixes'),
+                    _categoriaChip('Laticínios'),
+                    _categoriaChip('Snacks'),
+                    _categoriaChip('Hortifruti'),
+                    _categoriaChip('Padaria'),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              // ── Lista de produtos ───────────────────────────
+              // ── Lista ──────────────────────────────────────
               Expanded(
                 child: filtrados.isEmpty
                     ? Center(
@@ -229,7 +244,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
 
                           return ProdutoCard(
                             nome: produto.nomeProduto,
-                            marca: produto.marca,
+                            marca: produto.marca ?? '',
                             peso: produto.peso.toString(),
                             preco: produto.preco,
                             quantidade: qtd,
@@ -240,7 +255,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                       ),
               ),
 
-              // ── Rodapé: total + botão ───────────────────────
+              // ── Rodapé ──────────────────────────────────────
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -257,7 +272,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                     Text(
                       'R\$ ${carrinho.total.toStringAsFixed(2)}',
                       style: const TextStyle(
-                        color: Colors.green,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
@@ -266,7 +281,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               SizedBox(
                 width: double.infinity,
@@ -283,7 +298,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                           );
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                   ),
                   child: const Text(
@@ -299,7 +314,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
     );
   }
 
-  // ── Chip de categoria ──────────────────────────────────────
   Widget _categoriaChip(String categoria) {
     final selecionado = categoriaSelecionada == categoria;
 
@@ -308,7 +322,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
       child: ChoiceChip(
         selected: selecionado,
         label: Text(categoria),
-        selectedColor: Colors.green,
+        selectedColor: AppColors.primary,
         labelStyle: TextStyle(color: selecionado ? Colors.white : Colors.black),
         onSelected: (_) => setState(() => categoriaSelecionada = categoria),
       ),

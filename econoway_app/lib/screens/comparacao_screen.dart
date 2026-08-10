@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:econoway_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import '../controller/carrinho_controller.dart';
 import '../services/auth_service.dart';
 import '../models/mercado_comparacao_dto.dart';
@@ -22,6 +22,22 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
   String filtro = 'Menor preço';
 
   bool carregando = true;
+
+  double get economiaSelecionada {
+    if (mercadoSelecionadoIndex == null) return 0;
+    final selecionado = mercadosOrdenados[mercadoSelecionadoIndex!];
+
+    if (!selecionado.carrinhoCompleto) return 0;
+
+    final completos = mercadosOrdenados
+        .where((m) => m.carrinhoCompleto)
+        .toList();
+    if (completos.isEmpty) return 0;
+
+    final menorPreco = completos.first.total;
+    final diferenca = selecionado.total - menorPreco;
+    return diferenca > 0 ? diferenca : 0;
+  }
 
   List<MercadoComparacaoDTO> mercados = [];
 
@@ -53,6 +69,9 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       );
 
       if (response.statusCode == 200) {
+        print('STATUS: ${response.statusCode}');
+        print(response.body);
+
         final List dados = jsonDecode(response.body);
 
         setState(() {
@@ -81,9 +100,9 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       lista.sort((a, b) => a.total.compareTo(b.total));
     }
 
-    //if (filtro == 'Melhor avaliação') {
-    //lista.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
-    //}
+    if (filtro == 'Melhor avaliação') {
+      lista.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
+    }
 
     //if (filtro == 'Mais perto') {
     //  lista.sort((a, b) => a.distancia.compareTo(b.distancia));
@@ -93,14 +112,13 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
   }
 
   double get economiaPotencial {
-    if (mercados.isEmpty) return 0;
+    final completos = mercadosOrdenados
+        .where((m) => m.carrinhoCompleto) // ← só completos
+        .toList();
+    if (completos.length < 2) return 0;
 
-    final carrinho = CarrinhoController();
-
-    final menorPreco = mercadosOrdenados.first.total;
-
-    final diferenca = carrinho.total - menorPreco;
-
+    // diferença entre o mais caro e o mais barato entre completos
+    final diferenca = completos.last.total - completos.first.total;
     return diferenca > 0 ? diferenca : 0;
   }
 
@@ -108,7 +126,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
   Widget build(BuildContext context) {
     final carrinho = CarrinhoController();
 
-    if (carrinho.itens.isNotEmpty) {
+    if (carrinho.itens.isEmpty) {
       return const CarrinhoVazioScreen();
     }
 
@@ -121,18 +139,18 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Comparação')),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(6),
         child: Column(
           children: [
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Comparação de mercados',
+                'Comprou em qual mercado?',
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
             DropdownButton<String>(
               value: filtro,
@@ -158,7 +176,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
               },
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
             Expanded(
               child: ListView.builder(
@@ -204,16 +222,38 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                           if (mercado.carrinhoCompleto)
                             const Text(
                               'Carrinho completo',
+
                               style: TextStyle(
-                                color: Colors.green,
+                                color: AppColors.secondary,
                                 fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          if (selecionado)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 6),
+
+                              child: Text(
+                                '✅ Mercado escolhido',
+
+                                style: TextStyle(
+                                  color: AppColors.secondary,
+
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                         ],
                       ),
-                      trailing: selecionado
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : null,
+                      trailing: Radio<int>(
+                        value: index,
+                        groupValue: mercadoSelecionadoIndex,
+                        activeColor: AppColors.secondary,
+                        onChanged: (value) {
+                          setState(() {
+                            mercadoSelecionadoIndex = value;
+                          });
+                        },
+                      ),
                     ),
                   );
                 },
@@ -221,7 +261,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
             ),
 
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(6),
               child: Column(
                 children: [
                   Row(
@@ -231,6 +271,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                       Text(carrinho.quantidadeTotal.toString()),
                     ],
                   ),
+
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -250,13 +291,13 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                   if (economiaPotencial > 0) ...[
                     const Divider(),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         const Text('Economia potencial'),
                         Text(
                           'R\$ ${economiaPotencial.toStringAsFixed(2)}',
                           style: const TextStyle(
-                            color: Colors.green,
+                            color: AppColors.secondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -266,7 +307,42 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                 ],
               ),
             ),
-
+            if (mercadoSelecionadoIndex != null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      '✅ Mercado escolhido: ${ordenados[mercadoSelecionadoIndex!].nome}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    if (ordenados[mercadoSelecionadoIndex!].carrinhoCompleto)
+                      Text(
+                        'Economia estimada: R\$ ${economiaSelecionada.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    
+                    else
+                      const Text(
+                        'Este mercado não possui todos os itens da lista.',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             SizedBox(
               width: double.infinity,
               height: 56,

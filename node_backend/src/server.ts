@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import './database';
 import notaRoutes from './routes/notaRoutes';
+import adminRoutes from './routes/adminRoutes';
 
 import authRoutes from './routes/authRoutes';
 import supermercadoRoutes from './routes/supermercadoRoutes';
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use('/api/notas', notaRoutes);
 app.use('/api/comparacao', comparacaoRoutes,
   );
+app.use('/api/admin', adminRoutes);
 
 // ROTA DE TESTE 
 app.get('/api/status', (req, res) => {

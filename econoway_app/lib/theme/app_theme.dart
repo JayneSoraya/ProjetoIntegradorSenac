@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta oficial do EconoWay.
+/// Paleta oficial do SaveMoney
 /// Conceito visual: tecnologia + economia + sustentabilidade.
 class AppColors {
   static const Color primary = Color(0xFF0B5345); // Verde Adam Banks (Deep Forest)

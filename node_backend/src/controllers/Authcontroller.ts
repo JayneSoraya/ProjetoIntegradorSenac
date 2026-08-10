@@ -3,8 +3,9 @@ import bcrypt from 'bcrypt';
 import { pool } from '../database';
 import jwt from 'jsonwebtoken';
 
+
 export const cadastrarUsuario = async (req: Request, res: Response) => {
-  const { nome, email, senha } = req.body;
+  const { nome, email, senha, tipo_conta } = req.body;
 
   if (!nome || !email || !senha) {
     return res.status(400).json({
@@ -33,7 +34,7 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
 
     const resultConta = await client.query(
       `INSERT INTO conta (tipo_conta, email, senha, nome)
-       VALUES ('USUARIO', $1, $2, $3)
+       VALUES ('USER', $1, $2, $3)
        RETURNING id_conta`,
       [email, senhaCriptografada, nome]
     );
@@ -78,7 +79,14 @@ export const loginUsuario = async (req: Request, res: Response) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM conta WHERE email = $1',
+      `
+      SELECT
+        c.*,u.id_usuario
+      FROM conta c
+      LEFT JOIN usuario u
+      ON u.id_conta = c.id_conta
+      WHERE c.email = $1
+      `,
       [email]
     );
 
@@ -102,6 +110,8 @@ export const loginUsuario = async (req: Request, res: Response) => {
 const token = jwt.sign(
   {
     id_conta: usuario.id_conta,
+    id_usuario: usuario.id_conta,
+    tipo_conta:usuario.tipo_conta,
   },
   process.env.JWT_SECRET || 'dev_secret',
   {
@@ -113,7 +123,11 @@ const token = jwt.sign(
 return res.json({
   status: 'sucesso',
   usuario: {
-    nome: usuario.nome,
+    id_conta: usuario.conta,
+    id_usuario: usuario.id_usuario,
+    nome:usuario.nome,
+    email: usuario.email,
+    tipo_conta: usuario.tipo_conta,
   },
   token,
 });

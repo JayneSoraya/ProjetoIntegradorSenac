@@ -26,17 +26,17 @@ class ProdutoDTO {
   factory ProdutoDTO.fromJson(Map<String, dynamic> json) {
     return ProdutoDTO(
       idProduto: json['id_produto'],
-      codigoBarras: json['codigo_barras'],
-      nomeProduto: json['nome_produto'],
-      marca: json['marca'],
-      categoria: json['categoria'],
+      codigoBarras: json['codigo_barras'] ?? '',
+      nomeProduto: json['nome_produto'] ?? '',
+      marca: json['marca'] ?? '',
+      categoria: json['categoria'] ?? '',
       preco: double.tryParse(json['preco']?.toString() ?? '0') ?? 0,
       precoMedio: double.tryParse(json['precoMedio']?.toString() ?? '0') ?? 0,
       variacaoPreco:
           double.tryParse(json['variacaoPreco']?.toString() ?? '0') ?? 0,
       peso: double.tryParse(json['peso']?.toString() ?? '0') ?? 0,
 
-      unidadeMedida: json['unidade_medidada'] ?? '',
+      unidadeMedida: json['unidade_medida'] ?? '',
     );
   }
 }

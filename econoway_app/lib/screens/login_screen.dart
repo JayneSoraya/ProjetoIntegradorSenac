@@ -195,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   const Text(
-                    'EconoWay',
+                    'SaveMoney',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,

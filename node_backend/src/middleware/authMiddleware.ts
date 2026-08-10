@@ -6,6 +6,8 @@ declare global {
     interface Request {
       usuario?: {
         id_conta: number;
+        id_usuario: number;
+        tipo_conta?: string;
       };
     }
   }
@@ -25,7 +27,7 @@ export const autenticar = (req: Request, res: Response, next: NextFunction) => {
       token,
       process.env.JWT_SECRET || 'dev_secret'
     ) as { 
-      id_conta: number; 
+      id_conta: number; id_usuario:number; tipo_conta?: string
     };
 
     req.usuario = payload;
@@ -34,3 +36,9 @@ export const autenticar = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ erro: 'Token inválido ou expirado.' });
   }
 };
+
+export const apenasAdmin = (req: Request, res: Response, next: NextFunction) => {
+  if (req.usuario?.tipo_conta !== 'ADMIN')
+    return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
+  next();
+}

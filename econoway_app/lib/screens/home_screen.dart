@@ -4,9 +4,12 @@ import '../theme/app_theme.dart';
 import '../controller/carrinho_controller.dart';
 import '../services/economia_service.dart';
 import 'carrinho_screen.dart';
+import 'carrinho_vazio_screen.dart';
 import 'welcome_screen.dart';
 import 'produtos_screen.dart';
 import 'scan_nota_screen.dart';
+import 'admin_screen.dart';
+import 'mercado_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -24,6 +27,34 @@ class _HomeScreenState extends State<HomeScreen>
 
   ResumoUsuario? _resumo;
   bool _carregando = true;
+  String? _tipoConta;
+
+  Future<void> _verificarTipoConta() async {
+    final tipo = await AuthService.getTipoConta();
+
+    if (!mounted) return;
+
+    setState(() {
+      _tipoConta = tipo;
+    });
+
+    if (tipo == 'MERCADO') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MercadoHomeScreen()),
+        );
+      });
+    }
+    if (tipo == 'ADMIN') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminScreen()),
+        );
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -34,6 +65,7 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _economiaAnim = const AlwaysStoppedAnimation(0);
     _carregarResumo();
+    _verificarTipoConta();
   }
 
   Future<void> _carregarResumo() async {
@@ -97,11 +129,10 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     Text(
                       'Olá, ${widget.nomeUsuario}!',
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                      style: const TextStyle(fontSize: 15, color: Colors.grey),
                     ),
                     Row(
                       children: [
-                        
                         if (!_carregando && _resumo != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -121,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 const Icon(
                                   Icons.bolt,
                                   color: AppColors.secondary,
-                                  size: 16,
+                                  size: 15,
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
@@ -145,12 +176,17 @@ class _HomeScreenState extends State<HomeScreen>
                                 color: AppColors.primary,
                               ),
                               onPressed: () async {
+                                final destino =
+                                    CarrinhoController().itens.isEmpty
+                                    ? const CarrinhoVazioScreen()
+                                    : const CarrinhoScreen();
                                 await Navigator.push(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const CarrinhoScreen(),
-                                  ),
+                                  MaterialPageRoute(builder: (_) => destino),
                                 );
+
+                                if (!mounted) return;
+
                                 setState(() {});
                               },
                             ),
@@ -161,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: Colors.red,
+                                    color: AppColors.secondary,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   constraints: const BoxConstraints(
@@ -207,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 24),
 
-                // ── Card economia potencial 
+                // ── Card economia potencial
                 if (_carregando)
                   Container(
                     width: double.infinity,
@@ -227,21 +263,19 @@ class _HomeScreenState extends State<HomeScreen>
                 else
                   _buildCardPrimeiraVez(),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 15),
 
-                
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
                   _buildLinhaDados(),
 
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 5),
 
                 // ── Progresso mapa ────────────────────────────
                 if (!_carregando && _resumo != null) _buildProgressoMapa(),
 
                 const SizedBox(height: 24),
 
-              
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -258,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen>
                         size: 50,
                         color: AppColors.primary,
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 15),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -287,13 +321,12 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 24),
 
-          
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
                   children: [
                     _buildDashboardCard(
                       context,
@@ -313,12 +346,12 @@ class _HomeScreenState extends State<HomeScreen>
                       title: 'Rotas de Viagens',
                       subtitle: 'Distâncias calculadas',
                     ),
-                    
+
                     _buildDashboardCard(
                       context,
                       icon: Icons.qr_code_scanner,
                       title: 'Escanear Nota',
-                      subtitle: '+100 coins por scan',
+                      subtitle: '+100 saveCoins por scan',
                       destaque: true,
                       onTap: () async {
                         await Navigator.push(
@@ -327,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen>
                             builder: (_) => const ScanNotaScreen(),
                           ),
                         );
-                        _carregarResumo(); 
+                        _carregarResumo();
                       },
                     ),
                     _buildDashboardCard(
@@ -336,6 +369,21 @@ class _HomeScreenState extends State<HomeScreen>
                       title: 'Histórico',
                       subtitle: 'Suas economias',
                     ),
+
+                    if (_tipoConta == 'ADMIN')
+                      _buildDashboardCard(
+                        context,
+                        icon: Icons.admin_panel_settings,
+                        title: 'Administração',
+                        subtitle: 'Painel do sistema',
+                        destaque: true,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AdminScreen(),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -359,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen>
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withOpacity(0.3),
-            blurRadius: 16,
+            blurRadius: 15,
             offset: const Offset(0, 6),
           ),
         ],
@@ -394,7 +442,7 @@ class _HomeScreenState extends State<HomeScreen>
             'comprando no $mercado.',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 15),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -439,7 +487,7 @@ class _HomeScreenState extends State<HomeScreen>
           const Text(
             'Comece escaneando sua primeira nota',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
               color: AppColors.primary,
             ),
@@ -492,10 +540,10 @@ class _HomeScreenState extends State<HomeScreen>
         // Economia do mês
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.secondary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
             ),
             child: Column(
@@ -526,10 +574,10 @@ class _HomeScreenState extends State<HomeScreen>
         // EconoCoins + nível
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.primary.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(color: AppColors.primary.withOpacity(0.15)),
             ),
             child: Column(
@@ -673,7 +721,6 @@ class _HomeScreenState extends State<HomeScreen>
 
             const SizedBox(height: 12),
 
-            // Texto de Tensão Cognitiva / Gatilho Zeigarnik
             Row(
               children: [
                 Expanded(
@@ -714,15 +761,15 @@ class _HomeScreenState extends State<HomeScreen>
     VoidCallback? onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(15),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: destaque
               ? AppColors.secondary.withOpacity(0.1)
               : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(
             color: destaque
                 ? AppColors.secondary.withOpacity(0.3)
@@ -741,7 +788,7 @@ class _HomeScreenState extends State<HomeScreen>
             const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(height: 4),
             Text(

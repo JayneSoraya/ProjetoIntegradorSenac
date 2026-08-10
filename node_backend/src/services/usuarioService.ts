@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 export class UsuarioService {
 
   async cadastrar(dados: any) {
-    const { nome, email, senha, cep, aceita_lgpd } = dados;
+    const { nome, email, senha, cep, aceita_lgpd, tipo_conta } = dados;
 
     const sal = await bcrypt.genSalt(10);
     const senhaCriptografada = await bcrypt.hash(senha, sal);
@@ -17,10 +17,10 @@ export class UsuarioService {
       
       const queryConta = `
         INSERT INTO conta (tipo_conta, email, senha, nome, cep)
-        VALUES ('USER', $1, $2, $3, $4)
+        VALUES ($1, $2, $3, $4, $5)
         RETURNING id_conta;
       `;
-      const resConta = await client.query(queryConta, [email, senhaCriptografada, nome, cep]);
+      const resConta = await client.query(queryConta, [tipo_conta,email, senhaCriptografada, nome, cep]);
       const idConta = resConta.rows[0].id_conta;
 
       const queryUsuario = `
@@ -71,12 +71,12 @@ export class UsuarioService {
     }
 
     const token = jwt.sign(
-      { id_conta: conta.id_conta, id_usuario: conta.id_usuario, tipo: conta.tipo_conta },
-      'CHAVE_SECRETA_DO_ECONOWAY',
+      { id_conta: conta.id_conta, id_usuario: conta.id_usuario, tipo_conta: conta.tipo_conta },
+      process.env.JWT_SECRET || 'dev_secret',
       { expiresIn: '1d' }
     );
 
-
+console.log(conta);
     return {
       usuario: {
         id_usuario: conta.id_usuario,
