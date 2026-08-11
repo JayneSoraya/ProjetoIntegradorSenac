@@ -3,7 +3,6 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'cadastro_screen.dart';
-import 'recuperar_senha_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -142,7 +141,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       validator: (v) {
         if (v == null || v.isEmpty) return 'Informe sua senha';
-        if (v.length < 6) return 'Mínimo de 6 caracteres';
         return null;
       },
     );
@@ -219,24 +217,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   _buildSenhaField(),
                   const SizedBox(height: 8),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecuperarSenhaScreen(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Esqueci minha senha',
-                        style: TextStyle(color: AppColors.primary),
-                      ),
-                    ),
-                  ),
 
                   const SizedBox(height: 16),
                   _buildBotaoLogin(),

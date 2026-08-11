@@ -1,159 +1,92 @@
 import { Request, Response } from 'express';
-import { pool } from '../database';
+import { normalizeCartItems, normalizeMarketIds } from '../domain/cart';
+import { ComparisonService } from '../services/comparisonService';
+import { logger } from '../lib/logger';
 
 export class ComparacaoController {
-
-  comparar = async (
-    req: Request,
-    res: Response,
-  ): Promise<void> => {
-
+  comparar = async (req: Request, res: Response): Promise<void> => {
     try {
+      const items = normalizeCartItems(req.body?.itens);
+      const marketIds = normalizeMarketIds(req.body?.supermercados);
+      const save = req.body?.salvar === true;
+      const strategy = typeof req.body?.estrategia === 'string' ? req.body.estrategia : undefined;
 
-      const { itens } = req.body;
+      const result = await ComparisonService.compare(items, marketIds, {
+        save,
+        userId: req.auth?.userId ?? undefined,
+        strategy,
+      });
 
-      if (!itens || itens.length === 0) {
-        res.status(400).json({
-          erro: 'Carrinho vazio.',
-        });
+      res.status(save ? 201 : 200).json(result);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'INVALID_ITEMS') {
+        res.status(400).json({ erro: 'Carrinho inválido.' });
+        return;
+      }
+      if (code === 'INVALID_MARKETS') {
+        res.status(400).json({ erro: 'Seleção de supermercados inválida.' });
+        return;
+      }
+      if (code === 'PRODUCT_NOT_FOUND') {
+        res.status(400).json({ erro: 'O carrinho contém produto inexistente.' });
+        return;
+      }
+      if (code === 'NO_MARKETS_AVAILABLE') {
+        res.status(422).json({ erro: 'Nenhum supermercado aprovado está disponível para esta comparação.' });
+        return;
+      }
+      if (code === 'NO_COMPLETE_MARKET') {
+        res.status(409).json({ erro: 'Não existe supermercado com a cesta completa para salvar esta comparação.' });
+        return;
+      }
+      if (code === 'USER_REQUIRED') {
+        res.status(403).json({ erro: 'A comparação só pode ser salva por um usuário consumidor.' });
         return;
       }
 
-      const supermercados = await pool.query(`
-        SELECT
-          id_supermercado,
-          nome_fantasia
-        FROM supermercado
-      `);
+      logger.error('comparison_failed', error, { requestId: req.requestId });
+      res.status(500).json({ erro: 'Erro ao comparar mercados.' });
+    }
+  };
 
-      const resultado = [];
+  historico = async (req: Request, res: Response): Promise<void> => {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      res.status(403).json({ erro: 'Histórico disponível apenas para usuários.' });
+      return;
+    }
+    const limit = Number(req.query.limit ?? 20);
+    try {
+      const history = await ComparisonService.history(userId, Number.isFinite(limit) ? limit : 20);
+      res.status(200).json(history);
+    } catch (error) {
+      logger.error('comparison_history_failed', error, { requestId: req.requestId });
+      res.status(500).json({ erro: 'Erro ao consultar histórico.' });
+    }
+  };
 
-      for (const mercado of supermercados.rows) {
-
-        let total = 0;
-
-        const encontrados = [];
-        const faltando = [];
-
-        for (const item of itens) {
-
-          const oferta = await pool.query(
-            `
-            SELECT
-              p.nome_produto,
-              o.preco_atual
-            FROM oferta_supermercado o
-            INNER JOIN produto p
-              ON p.id_produto = o.id_produto
-            WHERE
-              o.id_supermercado = $1
-              AND o.id_produto = $2
-            `,
-            [
-              mercado.id_supermercado,
-              item.idProduto,
-            ],
-          );
-
-          if (oferta.rows.length > 0) {
-
-            const preco =
-              Number(
-                oferta.rows[0].preco_atual,
-              );
-
-            total +=
-              preco *
-              item.quantidade;
-
-            encontrados.push({
-              idProduto:
-                item.idProduto,
-              nomeProduto:
-                oferta.rows[0].nome_produto,
-              quantidade:
-                item.quantidade,
-              preco,
-            });
-
-          } else {
-
-            const produto =
-              await pool.query(
-                `
-                SELECT nome_produto
-                FROM produto
-                WHERE id_produto = $1
-                `,
-                [item.idProduto],
-              );
-
-            faltando.push({
-              idProduto:
-                item.idProduto,
-              nomeProduto:
-                produto.rows[0]
-                  ?.nome_produto ??
-                'Produto',
-            });
-          }
-        }
-
-        resultado.push({
-          id_supermercado:
-            mercado.id_supermercado,
-
-          nome_fantasia:
-            mercado.nome_fantasia,
-
-          total,
-
-          total_itens:
-            itens.length,
-
-          itens_encontrados:
-            encontrados.length,
-
-          itens_faltando:
-            faltando.length,
-
-          carrinho_completo:
-            faltando.length === 0,
-
-          encontrados,
-
-          faltando,
-        });
+  detalhe = async (req: Request, res: Response): Promise<void> => {
+    const userId = req.auth?.userId;
+    const comparisonId = Number(req.params.id);
+    if (!userId) {
+      res.status(403).json({ erro: 'Histórico disponível apenas para usuários.' });
+      return;
+    }
+    if (!Number.isInteger(comparisonId) || comparisonId <= 0) {
+      res.status(400).json({ erro: 'Comparação inválida.' });
+      return;
+    }
+    try {
+      const detail = await ComparisonService.detail(userId, comparisonId);
+      if (!detail) {
+        res.status(404).json({ erro: 'Comparação não encontrada.' });
+        return;
       }
-
-      resultado.sort((a, b) => {
-
-        if (
-          a.carrinho_completo &&
-          !b.carrinho_completo
-        ) {
-          return -1;
-        }
-
-        if (
-          !a.carrinho_completo &&
-          b.carrinho_completo
-        ) {
-          return 1;
-        }
-
-        return a.total - b.total;
-      });
-
-      res.status(200).json(resultado);
-
-    } catch (erro) {
-
-      console.error(erro);
-
-      res.status(500).json({
-        erro: 'Erro ao comparar mercados.',
-      });
+      res.status(200).json(detail);
+    } catch (error) {
+      logger.error('comparison_detail_failed', error, { requestId: req.requestId });
+      res.status(500).json({ erro: 'Erro ao consultar comparação.' });
     }
   };
 }

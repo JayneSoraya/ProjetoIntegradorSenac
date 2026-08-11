@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
+import '../core/network/api_client.dart';
 
 class ResumoUsuario {
   final double economiaMes;
@@ -9,6 +7,7 @@ class ResumoUsuario {
   final String? mercadoMaisBarato;
   final int totalComparacoes;
   final int econoCoins;
+  final int totalNotasValidas;
   final int produtosComPreco;
   final int metaMapa;
   final double progressoMapa;
@@ -20,49 +19,46 @@ class ResumoUsuario {
     this.mercadoMaisBarato,
     required this.totalComparacoes,
     required this.econoCoins,
+    required this.totalNotasValidas,
     required this.produtosComPreco,
     required this.metaMapa,
     required this.progressoMapa,
   });
 
   factory ResumoUsuario.fromJson(Map<String, dynamic> json) {
+    final mapa = json['mapa'] is Map<String, dynamic>
+        ? json['mapa'] as Map<String, dynamic>
+        : <String, dynamic>{};
+
     return ResumoUsuario(
-      economiaMes: (json['economia_mes'] ?? 0).toDouble(),
-      economiaTotal: (json['economia_total'] ?? 0).toDouble(),
-      economiaPotencial: (json['economia_potencial'] ?? 0).toDouble(),
-      mercadoMaisBarato: json['mercado_mais_barato'],
-      totalComparacoes: json['total_comparacoes'] ?? 0,
-      econoCoins: json['econo_coins'] ?? 50,
-      produtosComPreco: json['mapa']['produtos_com_preco'] ?? 0,
-      metaMapa: json['mapa']['meta'] ?? 50,
-      progressoMapa: (json['mapa']['progresso'] ?? 0).toDouble(),
+      economiaMes: _asDouble(json['economia_mes']),
+      economiaTotal: _asDouble(json['economia_total']),
+      economiaPotencial: _asDouble(json['economia_potencial']),
+      mercadoMaisBarato: json['mercado_mais_barato']?.toString(),
+      totalComparacoes: _asInt(json['total_comparacoes']),
+      econoCoins: _asInt(json['econo_coins']),
+      totalNotasValidas: _asInt(json['total_notas_validas']),
+      produtosComPreco: _asInt(mapa['produtos_com_preco']),
+      metaMapa: _asInt(mapa['meta'], fallback: 50),
+      progressoMapa: _asDouble(mapa['progresso']),
     );
   }
 
-  // Sem histórico ainda
   bool get semDados => totalComparacoes == 0;
+
+  static double _asDouble(dynamic value) =>
+      double.tryParse(value?.toString() ?? '') ?? 0;
+
+  static int _asInt(dynamic value, {int fallback = 0}) =>
+      int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
 class EconomiaService {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/economia';
-
   static Future<ResumoUsuario> buscarResumo() async {
-    final token = await AuthService.getToken();
-
-    final response = await http
-        .get(
-          Uri.parse('$_baseUrl/resumo'),
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $token',
-          },
-        )
-        .timeout(const Duration(seconds: 7));
-
-    if (response.statusCode == 200) {
-      return ResumoUsuario.fromJson(jsonDecode(response.body));
+    final data = await ApiClient.get('/economia/resumo');
+    if (data is! Map<String, dynamic>) {
+      throw ApiException('Resposta de resumo inválida.');
     }
-
-    throw Exception('Erro ao buscar resumo.');
+    return ResumoUsuario.fromJson(data);
   }
 }

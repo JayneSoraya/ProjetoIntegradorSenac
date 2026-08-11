@@ -49,3 +49,13 @@ Adicione qualquer outra informação que possa ser relevante para a revisão da 
 # Capturas de Tela (se aplicável)
 
 Se for necessário, adicione capturas de tela para ajudar a visualizar as mudanças.
+
+## Gates EconoWay
+
+- [ ] Backend: typecheck/test/build aprovados quando aplicável
+- [ ] Android: format/analyze/test aprovados quando aplicável
+- [ ] Web: lint/build aprovados quando aplicável
+- [ ] Nenhum segredo, token ou credencial foi adicionado ao diff
+- [ ] `docs/api/openapi.yaml` foi atualizado se o contrato mudou
+- [ ] `docs/requirements/traceability.md` foi atualizado se o comportamento mudou
+- [ ] ADR/documentação foi atualizado quando houve decisão arquitetural ou de produto

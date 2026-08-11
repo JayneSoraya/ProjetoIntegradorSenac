@@ -1,0 +1,794 @@
+openapi: 3.1.2
+info:
+  title: EconoWay API
+  version: 0.4.0-alpha.4
+  description: >-
+    Contrato canônico da API EconoWay. O aplicativo Android usa JWT Bearer;
+    o portal Web usa cookie HttpOnly e também é protegido por validação de origem
+    nas operações mutáveis.
+servers:
+  - url: http://localhost:3333/api
+    description: Desenvolvimento local
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+paths:
+  /health:
+    get:
+      security: []
+      summary: Liveness
+      responses:
+        '200': { description: API ativa }
+  /ready:
+    get:
+      security: []
+      summary: Readiness com banco
+      responses:
+        '200': { description: Dependências prontas }
+        '503': { description: Dependência indisponível }
+
+  /auth/cadastro:
+    post:
+      security: []
+      summary: Cadastra consumidor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastroUsuarioRequest' }
+      responses:
+        '201': { description: Conta criada }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { description: E-mail já utilizado }
+  /auth/login:
+    post:
+      security: []
+      summary: Autentica conta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Login realizado. Portal também recebe cookie HttpOnly.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, usuario, token]
+                properties:
+                  status: { const: sucesso }
+                  usuario: { $ref: '#/components/schemas/UsuarioAutenticado' }
+                  token: { type: string }
+        '401': { description: Credenciais inválidas }
+        '403': { description: Conta indisponível }
+        '429': { description: Muitas tentativas de autenticação }
+  /auth/logout:
+    post:
+      summary: Encerra sessão Web removendo cookie
+      responses:
+        '204': { description: Cookie removido }
+  /auth/me:
+    get:
+      summary: Retorna conta autenticada
+      responses:
+        '200':
+          description: Conta atual
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [usuario]
+                properties:
+                  usuario: { $ref: '#/components/schemas/UsuarioAutenticado' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/recuperar-senha:
+    post:
+      security: []
+      summary: Placeholder explícito do alpha
+      responses:
+        '501': { description: Recuperação ainda não habilitada }
+
+  /usuario/me:
+    get:
+      summary: Perfil do consumidor autenticado - USUARIO
+      responses:
+        '200':
+          description: Perfil atual
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PerfilUsuario' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      summary: Atualiza dados opcionais de perfil/localização - USUARIO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PerfilUsuarioUpdateRequest' }
+      responses:
+        '200':
+          description: Perfil atualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PerfilUsuario' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      summary: Exclui a própria conta após reautenticação por senha - USUARIO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [senha]
+              properties:
+                senha: { type: string, minLength: 1 }
+      responses:
+        '204': { description: Conta e dados dependentes removidos conforme cascatas do schema }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { description: Senha inválida }
+        '429': { description: Limite temporário de operação sensível excedido }
+  /usuario/me/exportar:
+    get:
+      summary: Exporta dados pessoais vinculados ao consumidor - USUARIO
+      responses:
+        '200':
+          description: Snapshot JSON dos dados pessoais e históricos vinculados
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExportacaoDadosPessoais' }
+        '429': { description: Limite temporário de operação sensível excedido }
+
+  /produtos:
+    get:
+      summary: Busca produtos disponíveis
+      parameters:
+        - in: query
+          name: busca
+          schema: { type: string, maxLength: 120 }
+        - in: query
+          name: categoria
+          schema: { type: string, maxLength: 80 }
+      responses:
+        '200':
+          description: Produtos encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Produto' }
+  /produtos/{id}:
+    get:
+      summary: Detalhe de produto
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Produto
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Produto' }
+        '404': { description: Produto não encontrado }
+
+  /carrinho:
+    get:
+      summary: Recupera carrinho aberto do consumidor
+      responses:
+        '200':
+          description: Carrinho atual
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Carrinho' }
+    put:
+      summary: Substitui de forma idempotente os itens do carrinho aberto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [itens]
+              properties:
+                itens:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items: { $ref: '#/components/schemas/CarrinhoItemInput' }
+      responses:
+        '200': { description: Carrinho sincronizado }
+        '400': { $ref: '#/components/responses/BadRequest' }
+    delete:
+      summary: Esvazia carrinho aberto
+      responses:
+        '204': { description: Carrinho esvaziado }
+
+  /supermercados:
+    get:
+      summary: Lista supermercados aprovados
+      parameters:
+        - in: query
+          name: lat
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - in: query
+          name: lng
+          schema: { type: number, minimum: -180, maximum: 180 }
+      responses:
+        '200':
+          description: Supermercados; distância é retornada quando coordenadas são fornecidas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Supermercado' }
+    post:
+      summary: Cadastra supermercado - ADMIN
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SupermercadoCreateRequest' }
+      responses:
+        '201': { description: Supermercado criado }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /supermercados/favoritos:
+    get:
+      summary: Lista favoritos do consumidor - USUARIO
+      responses:
+        '200':
+          description: Favoritos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Supermercado' }
+  /supermercados/me:
+    get:
+      summary: Lista supermercados vinculados ao responsável - SUPERMERCADO
+      responses:
+        '200': { description: Supermercados operáveis pela conta }
+  /supermercados/{id}/favorito:
+    put:
+      summary: Marca supermercado como favorito - USUARIO
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Favorito registrado }
+    delete:
+      summary: Remove favorito - USUARIO
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Favorito removido }
+  /supermercados/{id}/produtos:
+    get:
+      summary: Catálogo operacional paginado de um supermercado - SUPERMERCADO/ADMIN
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - in: query
+          name: busca
+          schema: { type: string, maxLength: 120 }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, minimum: 10, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Produtos e preços do supermercado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MarketProductPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /supermercados/{id}/inconsistencias:
+    get:
+      summary: Lista inconsistências objetivas do catálogo - SUPERMERCADO/ADMIN
+      description: >-
+        Retorna produtos sem preço na unidade, com preço mais antigo que PRICE_FRESHNESS_HOURS
+        ou com preço de fidelidade maior que o preço normal. Não realiza deduplicação automática
+        por similaridade de nome.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - in: query
+          name: tipo
+          schema:
+            type: string
+            enum: [SEM_PRECO, PRECO_DESATUALIZADO, FIDELIDADE_MAIOR]
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, minimum: 10, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Fila operacional de inconsistências
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CatalogInconsistencyPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /supermercados/{id}/produtos/{productId}/preco:
+    put:
+      summary: Atualiza preço manual - SUPERMERCADO/ADMIN
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [preco]
+              properties:
+                preco: { type: number, exclusiveMinimum: 0 }
+                preco_fidelidade: { type: [number, 'null'], exclusiveMinimum: 0 }
+      responses:
+        '204': { description: Preço atualizado e auditado }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Produto não encontrado }
+  /supermercados/{id}/importacoes/validar:
+    post:
+      summary: Valida importação sem publicar alterações
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [registros]
+              properties:
+                registros:
+                  type: array
+                  minItems: 1
+                  maxItems: 5000
+                  items: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Preview, checksum e erros de validação }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { description: Limite temporário de validações excedido }
+  /supermercados/{id}/importacoes:
+    post:
+      summary: Publica importação previamente validável de forma transacional
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PriceImportApplyRequest' }
+      responses:
+        '201': { description: Importação concluída }
+        '409': { description: Conteúdo duplicado }
+        '422': { description: Existem registros inválidos }
+        '429': { description: Limite temporário de importações excedido }
+    get:
+      summary: Histórico de importações do supermercado
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200': { description: Histórico de importações }
+
+  /comparacao:
+    post:
+      summary: Compara cesta entre múltiplos supermercados
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComparacaoRequest' }
+      responses:
+        '200':
+          description: Mercados completos são priorizados; parciais ficam explícitos.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ComparacaoResultado' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { description: Nenhum mercado possui a cesta completa para persistência }
+  /comparacao/historico:
+    get:
+      summary: Histórico de comparações salvas - USUARIO
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200': { description: Comparações salvas }
+  /comparacao/{id}:
+    get:
+      summary: Detalhe de uma comparação pertencente ao consumidor
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: Detalhe da comparação }
+        '404': { description: Comparação não encontrada }
+
+  /notas/processar:
+    post:
+      summary: Processa QR Code NFC-e permitido e idempotente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url_qrcode]
+              properties:
+                url_qrcode: { type: string, format: uri }
+      responses:
+        '200': { description: Nota processada e EconoCoins creditados quando inédita }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { description: Nota já processada }
+        '422': { description: Conteúdo da nota não reconhecido }
+        '429': { description: Limite temporário de processamento excedido }
+  /economia/resumo:
+    get:
+      summary: Dashboard do consumidor
+      responses:
+        '200': { description: Economia, EconoCoins e progresso }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/resumo:
+    get:
+      summary: Indicadores administrativos - ADMIN
+      responses:
+        '200': { description: Indicadores administrativos }
+  /admin/usuarios:
+    get:
+      summary: Lista contas - ADMIN
+      parameters:
+        - in: query
+          name: busca
+          schema: { type: string }
+      responses:
+        '200': { description: Contas }
+  /admin/usuarios/{id}/status:
+    patch:
+      summary: Ativa ou bloqueia conta - ADMIN
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ativo]
+              properties:
+                ativo: { type: boolean }
+      responses:
+        '204': { description: Status alterado }
+        '409': { description: Administrador não pode bloquear a própria conta }
+  /admin/supermercados:
+    get:
+      summary: Lista supermercados para moderação - ADMIN
+      responses:
+        '200': { description: Supermercados }
+  /admin/supermercados/{id}/status:
+    patch:
+      summary: Aprova, suspende ou retorna supermercado para pendência - ADMIN
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { enum: [PENDENTE, APROVADO, SUSPENSO] }
+      responses:
+        '204': { description: Status alterado e auditado }
+  /admin/auditoria:
+    get:
+      summary: Eventos recentes de auditoria - ADMIN
+      responses:
+        '200': { description: Eventos auditáveis }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: econoway_session
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+  responses:
+    BadRequest:
+      description: Entrada inválida
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    Unauthorized:
+      description: Não autenticado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+    Forbidden:
+      description: Sem permissão
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Erro' }
+  schemas:
+    Erro:
+      type: object
+      required: [erro]
+      properties:
+        erro: { type: string }
+    CadastroUsuarioRequest:
+      type: object
+      required: [nome, email, senha]
+      properties:
+        nome: { type: string, minLength: 2, maxLength: 120 }
+        email: { type: string, format: email, maxLength: 320 }
+        senha: { type: string, minLength: 8 }
+    LoginRequest:
+      type: object
+      required: [email, senha]
+      properties:
+        email: { type: string, format: email }
+        senha: { type: string }
+    UsuarioAutenticado:
+      type: object
+      required: [id_conta, nome, email, tipo_conta]
+      properties:
+        id_conta: { type: integer }
+        id_usuario: { type: [integer, 'null'] }
+        nome: { type: string }
+        email: { type: string, format: email }
+        tipo_conta: { enum: [USUARIO, SUPERMERCADO, ADMIN] }
+    PerfilUsuario:
+      type: object
+      properties:
+        id_conta: { type: integer }
+        id_usuario: { type: integer }
+        nome: { type: string }
+        email: { type: string, format: email }
+        cep: { type: [string, 'null'] }
+        aceite_lgpd: { type: boolean }
+        tipo_veiculo: { type: [string, 'null'] }
+        latitude: { type: [number, 'null'] }
+        longitude: { type: [number, 'null'] }
+        endereco: { type: [string, 'null'] }
+        dt_cadastro: { type: string, format: date-time }
+        ultimo_login: { type: [string, 'null'], format: date-time }
+    PerfilUsuarioUpdateRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        cep:
+          type: [string, 'null']
+          pattern: '^[0-9]{8}$'
+        endereco: { type: [string, 'null'], maxLength: 255 }
+        latitude: { type: [number, 'null'], minimum: -90, maximum: 90 }
+        longitude: { type: [number, 'null'], minimum: -180, maximum: 180 }
+        tipo_veiculo: { type: [string, 'null'], maxLength: 50 }
+    ExportacaoDadosPessoais:
+      type: object
+      required: [exportado_em, perfil, favoritos, carrinhos, comparacoes, notas_fiscais, econocoins]
+      properties:
+        exportado_em: { type: string, format: date-time }
+        perfil: { $ref: '#/components/schemas/PerfilUsuario' }
+        favoritos: { type: array, items: { type: object, additionalProperties: true } }
+        carrinhos: { type: array, items: { type: object, additionalProperties: true } }
+        comparacoes: { type: array, items: { type: object, additionalProperties: true } }
+        notas_fiscais: { type: array, items: { type: object, additionalProperties: true } }
+        econocoins: { type: array, items: { type: object, additionalProperties: true } }
+    MarketProduct:
+      type: object
+      properties:
+        id_produto: { type: integer }
+        codigo_barras: { type: string }
+        nome_produto: { type: string }
+        marca: { type: [string, 'null'] }
+        categoria: { type: [string, 'null'] }
+        unidade_medida: { type: [string, 'null'] }
+        preco_atual: { type: [number, string, 'null'] }
+        preco_fidelidade: { type: [number, string, 'null'] }
+        fonte: { type: [string, 'null'] }
+        data_atualizacao: { type: [string, 'null'], format: date-time }
+    PageInfo:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page: { type: integer, minimum: 1 }
+        page_size: { type: integer, minimum: 1 }
+        total: { type: integer, minimum: 0 }
+        total_pages: { type: integer, minimum: 1 }
+    MarketProductPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/MarketProduct' }
+        pagination: { $ref: '#/components/schemas/PageInfo' }
+    CatalogInconsistency:
+      type: object
+      required: [id_produto, codigo_barras, nome_produto, problemas]
+      properties:
+        id_produto: { type: integer }
+        codigo_barras: { type: string }
+        nome_produto: { type: string }
+        marca: { type: [string, 'null'] }
+        categoria: { type: [string, 'null'] }
+        preco_atual: { type: [number, string, 'null'] }
+        preco_fidelidade: { type: [number, string, 'null'] }
+        data_atualizacao: { type: [string, 'null'], format: date-time }
+        problemas:
+          type: array
+          items:
+            enum: [SEM_PRECO, PRECO_DESATUALIZADO, FIDELIDADE_MAIOR]
+    CatalogInconsistencySummary:
+      type: object
+      required: [sem_preco, preco_desatualizado, fidelidade_maior, produtos_com_inconsistencia, janela_frescor_horas]
+      properties:
+        sem_preco: { type: integer, minimum: 0 }
+        preco_desatualizado: { type: integer, minimum: 0 }
+        fidelidade_maior: { type: integer, minimum: 0 }
+        produtos_com_inconsistencia: { type: integer, minimum: 0 }
+        janela_frescor_horas: { type: integer, minimum: 1 }
+    CatalogInconsistencyPage:
+      type: object
+      required: [resumo, items, pagination]
+      properties:
+        resumo: { $ref: '#/components/schemas/CatalogInconsistencySummary' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogInconsistency' }
+        pagination: { $ref: '#/components/schemas/PageInfo' }
+    Produto:
+      type: object
+      properties:
+        id_produto: { type: integer }
+        codigo_barras: { type: string }
+        nome_produto: { type: string }
+        marca: { type: [string, 'null'] }
+        categoria: { type: [string, 'null'] }
+        peso: { type: [number, 'null'] }
+        unidade_medida: { type: [string, 'null'] }
+        preco: { type: [number, 'null'] }
+        preco_medio: { type: [number, 'null'] }
+        variacao_preco: { type: [number, 'null'] }
+    CarrinhoItemInput:
+      type: object
+      required: [idProduto, quantidade]
+      properties:
+        idProduto: { type: integer, minimum: 1 }
+        quantidade: { type: integer, minimum: 1, maximum: 1000 }
+    Carrinho:
+      type: object
+      properties:
+        id_carrinho: { type: [integer, 'null'] }
+        status: { const: ABERTO }
+        total_itens: { type: integer }
+        itens:
+          type: array
+          items:
+            type: object
+            properties:
+              id_produto: { type: integer }
+              nome_produto: { type: string }
+              quantidade: { type: integer }
+              preco_unitario: { type: [number, 'null'] }
+    SupermercadoCreateRequest:
+      type: object
+      required: [cnpj, nome_fantasia, endereco_completo]
+      properties:
+        cnpj: { type: string, pattern: '^[0-9]{14}$' }
+        nome_fantasia: { type: string, minLength: 1, maxLength: 120 }
+        endereco_completo: { type: string, minLength: 1, maxLength: 255 }
+        latitude: { type: [number, 'null'], minimum: -90, maximum: 90 }
+        longitude: { type: [number, 'null'], minimum: -180, maximum: 180 }
+    Supermercado:
+      type: object
+      properties:
+        id_supermercado: { type: integer }
+        cnpj: { type: string }
+        nome_fantasia: { type: string }
+        endereco_completo: { type: string }
+        latitude: { type: [number, 'null'] }
+        longitude: { type: [number, 'null'] }
+        reputacao_media: { type: number }
+        esta_aberto: { type: boolean }
+        favorito: { type: boolean }
+        distancia_km: { type: [number, 'null'] }
+    PriceImportApplyRequest:
+      type: object
+      required: [formato, nome_arquivo, registros]
+      properties:
+        formato: { enum: [CSV, JSON] }
+        nome_arquivo: { type: string, minLength: 1, maxLength: 255 }
+        registros:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items: { type: object, additionalProperties: true }
+    ComparacaoRequest:
+      type: object
+      required: [itens]
+      properties:
+        itens:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/CarrinhoItemInput' }
+        supermercados:
+          type: array
+          maxItems: 100
+          uniqueItems: true
+          items: { type: integer, minimum: 1 }
+          description: IDs selecionados, favoritos ou próximos. Omissão compara todos os aprovados.
+        salvar:
+          type: boolean
+          default: false
+        estrategia:
+          enum: [MENOR_TOTAL, FAVORITOS, PROXIMOS, SELECIONADOS]
+    ComparacaoItem:
+      type: object
+      properties:
+        idProduto: { type: integer }
+        nomeProduto: { type: string }
+        quantidade: { type: integer }
+        preco: { type: number }
+        precoFidelidade: { type: [number, 'null'] }
+        atualizadoEm: { type: [string, 'null'], format: date-time }
+        desatualizado: { type: boolean }
+    ComparacaoMercado:
+      type: object
+      required:
+        [id_supermercado, nome_fantasia, total, total_fidelidade, total_itens,
+         itens_encontrados, itens_faltando, itens_desatualizados, carrinho_completo]
+      properties:
+        id_supermercado: { type: integer }
+        nome_fantasia: { type: string }
+        total: { type: number }
+        total_fidelidade: { type: number }
+        total_itens: { type: integer }
+        itens_encontrados: { type: integer }
+        itens_faltando: { type: integer }
+        itens_desatualizados: { type: integer }
+        carrinho_completo: { type: boolean }
+        encontrados:
+          type: array
+          items: { $ref: '#/components/schemas/ComparacaoItem' }
+        faltando:
+          type: array
+          items: { type: object, additionalProperties: true }
+    ComparacaoResumo:
+      type: object
+      properties:
+        melhor_mercado_id: { type: [integer, 'null'] }
+        melhor_mercado: { type: [string, 'null'] }
+        melhor_total: { type: number }
+        media_tres_mais_caros: { type: number }
+        economia_potencial: { type: number }
+        mercados_avaliados: { type: integer }
+        mercados_completos: { type: integer }
+        salvo: { type: boolean }
+        id_comparacao: { type: [integer, 'null'] }
+        itens_desatualizados_total: { type: integer }
+    ComparacaoResultado:
+      type: object
+      required: [mercados, resumo]
+      properties:
+        mercados:
+          type: array
+          items: { $ref: '#/components/schemas/ComparacaoMercado' }
+        resumo: { $ref: '#/components/schemas/ComparacaoResumo' }

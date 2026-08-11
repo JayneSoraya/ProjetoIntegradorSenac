@@ -125,7 +125,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 30),
 
-               
                 TextFormField(
                   controller: _nomeController,
                   decoration: _inputDecoration(
@@ -145,7 +144,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 16),
 
-                
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -171,8 +169,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     if (v == null || v.isEmpty) {
                       return 'Informe a senha';
                     }
-                    if (v.length < 6) {
-                      return 'Mínimo de 6 caracteres';
+                    if (v.length < 8) {
+                      return 'Mínimo de 8 caracteres';
                     }
                     return null;
                   },
@@ -180,7 +178,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 16),
 
-                
                 TextFormField(
                   controller: _confirmarSenhaController,
                   obscureText: true,

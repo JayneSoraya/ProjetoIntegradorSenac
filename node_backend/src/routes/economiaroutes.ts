@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { buscarResumo } from '../controllers/economiacontroller';
-import { autenticar } from '../middleware/authMiddleware';
+import { autenticar, autorizar } from '../middleware/authMiddleware';
 
 const router = Router();
 
-router.get('/resumo', autenticar, buscarResumo);
+router.get('/resumo', autenticar, autorizar('USUARIO'), buscarResumo);
 
 export default router;

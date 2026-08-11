@@ -1,12 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../controller/carrinho_controller.dart';
+import '../widgets/cart_scope.dart';
 import '../controller/produto_controller.dart';
 import '../models/carrinho_item.dart';
 import '../models/produto_dto.dart';
 import '../repository/produto_repository.dart';
-import 'comparacao_screen.dart';
-import 'carrinho_screen.dart';
+import '../theme/app_theme.dart';
 import '../widgets/produto_card.dart';
+import 'carrinho_screen.dart';
 
 class ProdutosScreen extends StatefulWidget {
   const ProdutosScreen({super.key});
@@ -16,301 +19,237 @@ class ProdutosScreen extends StatefulWidget {
 }
 
 class _ProdutosScreenState extends State<ProdutosScreen> {
-  // ── Controllers ────────────────────────────────────────────
-  final CarrinhoController carrinho = CarrinhoController();
+  late CarrinhoController cart;
   final controller = ProdutoController(ProdutoRepository());
+  Timer? _debounce;
+  List<ProdutoDTO> products = [];
+  bool loading = true;
+  String category = 'Todos';
+  String search = '';
 
-  // ── Estado ─────────────────────────────────────────────────
-  List<ProdutoDTO> produtos = [];
-  bool carregando = true;
-  String categoriaSelecionada = 'Outros';
-  String textoBusca = '';
-
-  // ── Ciclo de vida ──────────────────────────────────────────
   @override
   void initState() {
     super.initState();
-    carregarProdutos();
+    _load();
   }
 
-  Future<void> carregarProdutos() async {
-    print('INICIANDO BUSCA DE PRODUTOS');
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    cart = CartScope.of(context);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => loading = true);
     try {
-      final resultado = await controller.buscarProduto('');
-      print('TOTAL PRODUTOS: ${resultado.length}');
-      for (final p in resultado.take(5)) {
-        print('${p.nomeProduto} - ${p.preco}');
-      }
+      final result = await controller.buscarProduto(
+        search,
+        categoria: category == 'Todos' ? '' : category,
+      );
       if (!mounted) return;
       setState(() {
-        produtos = resultado;
-        carregando = false;
+        products = result;
+        loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() => carregando = false);
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao carregar produtos')),
+        const SnackBar(content: Text('Erro ao carregar produtos.')),
       );
     }
   }
 
-  // ── Carrinho ───────────────────────────────────────────────
-  int quantidadeProduto(int idProduto) {
-    try {
-      return carrinho.itens
-          .firstWhere((i) => i.idProduto == idProduto)
-          .quantidade;
-    } catch (_) {
-      return 0;
+  void _scheduleSearch(String value) {
+    search = value;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), _load);
+  }
+
+  int quantityFor(int productId) {
+    for (final item in cart.itens) {
+      if (item.idProduto == productId) return item.quantidade;
     }
+    return 0;
   }
 
-  void adicionarProduto(ProdutoDTO produto) {
-    carrinho.adicionar(
-      CarrinhoItem(
-        idProduto: produto.idProduto,
-        nomeProduto: produto.nomeProduto,
-        preco: produto.preco,
-      ),
-    );
-    setState(() {});
-  }
+  void add(ProdutoDTO product) => cart.adicionar(
+    CarrinhoItem(
+      idProduto: product.idProduto,
+      nomeProduto: product.nomeProduto,
+      preco: product.preco,
+    ),
+  );
 
-  void removerProduto(ProdutoDTO produto) {
-    final itens = carrinho.itens.where((i) => i.idProduto == produto.idProduto);
-    if (itens.isEmpty) return;
+  void remove(ProdutoDTO product) => cart.decrementar(product.idProduto);
 
-    if (itens.first.quantidade <= 1) {
-      carrinho.remover(produto.idProduto);
-    } else {
-      itens.first.quantidade--;
-    }
-    setState(() {});
-  }
-
-  // ── Build ──────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    // Loading inicial
-    if (carregando) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    // Filtro local por categoria + texto de busca
-    final filtrados = produtos.where((p) {
-      final categoriaOk =
-          categoriaSelecionada == 'Outros' ||
-          p.categoria == categoriaSelecionada;
-      final buscaOk =
-          textoBusca.isEmpty ||
-          p.nomeProduto.toLowerCase().contains(textoBusca.toLowerCase()) ||
-          p.marca.toLowerCase().contains(textoBusca.toLowerCase());
-      return categoriaOk && buscaOk;
-    }).toList();
-
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // ── Cabeçalho ──────────────────────────────────
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new),
-                    onPressed: () => Navigator.pop(context),
+      appBar: AppBar(
+        title: const Text('Produtos'),
+        actions: [
+          ListenableBuilder(
+            listenable: cart,
+            builder: (_, _) => Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CarrinhoScreen()),
                   ),
-                  const Spacer(),
-                  Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.shopping_cart_outlined,
-                          size: 30,
-                          color: Colors.green,
+                ),
+                if (cart.quantidadeTotal > 0)
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: CircleAvatar(
+                      radius: 9,
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        '${cart.quantidadeTotal}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
                         ),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CarrinhoScreen(),
-                            ),
-                          );
-                          if (!mounted) return;
-                          setState(() {});
-                        },
                       ),
-                      if (carrinho.quantidadeTotal > 0)
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.green,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              carrinho.quantidadeTotal.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Busca ───────────────────────────────────────
-              TextField(
-                onChanged: (v) => setState(() => textoBusca = v),
+              ],
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                onChanged: _scheduleSearch,
                 decoration: InputDecoration(
-                  hintText: 'Procure por produto ou marca',
-                  prefixIcon: const Icon(Icons.search, color: Colors.green),
+                  hintText: 'Procure por produto, marca ou código',
+                  prefixIcon: const Icon(Icons.search),
                   filled: true,
-                  fillColor: Colors.grey.shade200,
+                  fillColor: Colors.grey.shade100,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(28),
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
-
-              const SizedBox(height: 16),
-
-              // ── Categorias ──────────────────────────────────
-              SizedBox(
-                height: 42,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _categoriaChip('Outros'),
-                    _categoriaChip('Alimentos'),
-                    _categoriaChip('Limpeza'),
-                    _categoriaChip('Bebidas'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Lista de produtos ───────────────────────────
-              Expanded(
-                child: filtrados.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Nenhum produto encontrado',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ],
+            ),
+            SizedBox(
+              height: 44,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: ['Todos', 'Alimentos', 'Limpeza', 'Bebidas', 'Outros']
+                    .map(
+                      (value) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(value),
+                          selected: category == value,
+                          onSelected: (_) {
+                            setState(() => category = value);
+                            _load();
+                          },
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: filtrados.length,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : products.isEmpty
+                  ? const Center(child: Text('Nenhum produto encontrado.'))
+                  : ListenableBuilder(
+                      listenable: cart,
+                      builder: (_, _) => ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        itemCount: products.length,
                         itemBuilder: (_, index) {
-                          final produto = filtrados[index];
-                          final qtd = quantidadeProduto(produto.idProduto);
-
+                          final product = products[index];
                           return ProdutoCard(
-                            nome: produto.nomeProduto,
-                            marca: produto.marca,
-                            peso: produto.peso.toString(),
-                            preco: produto.preco,
-                            quantidade: qtd,
-                            onAdicionar: () => adicionarProduto(produto),
-                            onRemover: () => removerProduto(produto),
+                            nome: product.nomeProduto,
+                            marca: product.marca,
+                            peso: product.peso > 0
+                                ? '${product.peso} ${product.unidadeMedida}'
+                                : product.unidadeMedida,
+                            preco: product.preco,
+                            quantidade: quantityFor(product.idProduto),
+                            onAdicionar: () => add(product),
+                            onRemover: () => remove(product),
                           );
                         },
-                      ),
-              ),
-
-              // ── Rodapé: total + botão ───────────────────────
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total', style: TextStyle(fontSize: 14)),
-                    Text(
-                      'R\$ ${carrinho.total.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton(
-                  onPressed: carrinho.itens.isEmpty
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ComparacaoScreen(),
+            ),
+            ListenableBuilder(
+              listenable: cart,
+              builder: (_, _) => cart.quantidadeTotal == 0
+                  ? const SizedBox.shrink()
+                  : Container(
+                      margin: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111827),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${cart.quantidadeTotal} itens no carrinho',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Estimativa atual: R\$ ${cart.total.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text(
-                    'Comparar preços',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CarrinhoScreen(),
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Ver carrinho'),
+                          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  // ── Chip de categoria ──────────────────────────────────────
-  Widget _categoriaChip(String categoria) {
-    final selecionado = categoriaSelecionada == categoria;
-
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        selected: selecionado,
-        label: Text(categoria),
-        selectedColor: Colors.green,
-        labelStyle: TextStyle(color: selecionado ? Colors.white : Colors.black),
-        onSelected: (_) => setState(() => categoriaSelecionada = categoria),
       ),
     );
   }

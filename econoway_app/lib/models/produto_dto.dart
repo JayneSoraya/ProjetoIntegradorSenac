@@ -25,23 +25,19 @@ class ProdutoDTO {
 
   factory ProdutoDTO.fromJson(Map<String, dynamic> json) {
     return ProdutoDTO(
-      idProduto: json['id_produto'],
-      codigoBarras: json['codigo_barras'],
-      nomeProduto: json['nome_produto'],
-      marca: json['marca'],
-      categoria: json['categoria'],
-      preco: double.tryParse(json['preco']?.toString() ?? '0') ?? 0,
-      precoMedio: double.tryParse(json['precoMedio']?.toString() ?? '0') ?? 0,
-      variacaoPreco:
-          double.tryParse(json['variacaoPreco']?.toString() ?? '0') ?? 0,
-      peso: double.tryParse(json['peso']?.toString() ?? '0') ?? 0,
-
-      unidadeMedida: json['unidade_medidada'] ?? '',
+      idProduto: int.tryParse(json['id_produto']?.toString() ?? '') ?? 0,
+      codigoBarras: json['codigo_barras']?.toString() ?? '',
+      nomeProduto: json['nome_produto']?.toString() ?? '',
+      marca: json['marca']?.toString() ?? '',
+      categoria: json['categoria']?.toString() ?? '',
+      preco: _asDouble(json['preco']),
+      precoMedio: _asDouble(json['preco_medio']),
+      variacaoPreco: _asDouble(json['variacao_preco']),
+      peso: _asDouble(json['peso']),
+      unidadeMedida: json['unidade_medida']?.toString() ?? '',
     );
   }
-}
 
-abstract class IProdutoRepository {
-  Future<List<ProdutoDTO>> buscarProduto(String pesquisa, {String categoria});
-  Future<ProdutoDTO> buscarDetalhe(int id);
+  static double _asDouble(dynamic value) =>
+      double.tryParse(value?.toString() ?? '') ?? 0;
 }

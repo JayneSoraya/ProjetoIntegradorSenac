@@ -3,22 +3,30 @@ import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/auth_service.dart';
+import 'controller/carrinho_controller.dart';
+import 'widgets/cart_scope.dart';
 
 void main() {
-  runApp(const EconoWayApp());
+  runApp(EconoWayApp());
 }
 
 class EconoWayApp extends StatelessWidget {
-  const EconoWayApp({super.key});
+  final CarrinhoController cart;
+
+  EconoWayApp({super.key, CarrinhoController? cart})
+    : cart = cart ?? CarrinhoController();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'EconoWay',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.light,
-      home: const SplashAuth(),
+    return CartScope(
+      controller: cart,
+      child: MaterialApp(
+        title: 'EconoWay',
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.light,
+        home: const SplashAuth(),
+      ),
     );
   }
 }
@@ -45,6 +53,7 @@ class _SplashAuthState extends State<SplashAuth> {
 
     if (loggedIn) {
       final nome = await AuthService.getNome();
+      if (!mounted) return;
 
       Navigator.pushReplacement(
         context,

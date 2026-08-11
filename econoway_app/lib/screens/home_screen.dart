@@ -1,12 +1,16 @@
-import 'package:econoway_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../controller/carrinho_controller.dart';
+import '../widgets/cart_scope.dart';
 import '../services/economia_service.dart';
+import '../services/carrinho_service.dart';
 import 'carrinho_screen.dart';
-import 'welcome_screen.dart';
 import 'produtos_screen.dart';
 import 'scan_nota_screen.dart';
+import 'historico_screen.dart';
+import 'supermercados_screen.dart';
+import 'perfil_screen.dart';
+import '../widgets/home_quick_action_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -24,6 +28,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   ResumoUsuario? _resumo;
   bool _carregando = true;
+  late CarrinhoController _cart;
+  bool _cartRestored = false;
 
   @override
   void initState() {
@@ -34,6 +40,26 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _economiaAnim = const AlwaysStoppedAnimation(0);
     _carregarResumo();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cart = CartScope.of(context);
+    if (!_cartRestored) {
+      _cartRestored = true;
+      _restaurarCarrinho();
+    }
+  }
+
+  Future<void> _restaurarCarrinho() async {
+    try {
+      final itens = await CarrinhoService.carregar();
+      _cart.restaurar(itens);
+      if (mounted) setState(() {});
+    } catch (_) {
+      // O carrinho local continua utilizável se a sincronização estiver indisponível.
+    }
   }
 
   Future<void> _carregarResumo() async {
@@ -65,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final quantidade = CarrinhoController().quantidadeTotal;
+    final quantidade = _cart.quantidadeTotal;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -80,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'SaveMoney',
+                  'EconoWay',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -101,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     Row(
                       children: [
-                        
                         if (!_carregando && _resumo != null)
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -109,10 +134,10 @@ class _HomeScreenState extends State<HomeScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: AppColors.primary.withOpacity(0.2),
+                                color: AppColors.primary.withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -182,23 +207,18 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
 
-                        // Logout
                         IconButton(
+                          tooltip: 'Perfil',
                           icon: const Icon(
-                            Icons.logout_rounded,
-                            color: Colors.redAccent,
+                            Icons.person_outline,
+                            color: AppColors.primary,
                           ),
-                          onPressed: () async {
-                            await AuthService.logout();
-                            if (!mounted) return;
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WelcomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          },
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PerfilScreen(),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -207,13 +227,13 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 24),
 
-                // ── Card economia potencial 
+                // ── Card economia potencial
                 if (_carregando)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Center(
@@ -229,7 +249,6 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 16),
 
-                
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
                   _buildLinhaDados(),
 
@@ -241,65 +260,18 @@ class _HomeScreenState extends State<HomeScreen>
 
                 const SizedBox(height: 24),
 
-              
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.co2_rounded,
-                        size: 50,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Emissões de CO₂',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Histórico de gases poluentes reduzidos com base nas distâncias percorridas.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-          
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
+                  childAspectRatio: 0.82,
                   children: [
-                    _buildDashboardCard(
-                      context,
+                    HomeQuickActionCard(
                       icon: Icons.local_mall_outlined,
-                      title: 'Listas de Compras',
-                      subtitle: 'Avaliação de menor preço',
+                      title: 'Comparar preços',
+                      subtitle: 'Monte sua cesta',
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -307,18 +279,22 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                     ),
-                    _buildDashboardCard(
-                      context,
+                    HomeQuickActionCard(
                       icon: Icons.map_outlined,
-                      title: 'Rotas de Viagens',
-                      subtitle: 'Distâncias calculadas',
+                      title: 'Supermercados',
+                      subtitle: 'Favoritos e disponíveis',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SupermercadosScreen(),
+                        ),
+                      ),
                     ),
-                    
-                    _buildDashboardCard(
-                      context,
+
+                    HomeQuickActionCard(
                       icon: Icons.qr_code_scanner,
                       title: 'Escanear Nota',
-                      subtitle: '+100 coins por scan',
+                      subtitle: '+100 por NFC-e válida e inédita',
                       destaque: true,
                       onTap: () async {
                         await Navigator.push(
@@ -327,14 +303,19 @@ class _HomeScreenState extends State<HomeScreen>
                             builder: (_) => const ScanNotaScreen(),
                           ),
                         );
-                        _carregarResumo(); 
+                        _carregarResumo();
                       },
                     ),
-                    _buildDashboardCard(
-                      context,
+                    HomeQuickActionCard(
                       icon: Icons.history,
                       title: 'Histórico',
                       subtitle: 'Suas economias',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HistoricoScreen(),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -358,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -379,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 8),
           AnimatedBuilder(
             animation: _economiaAnim,
-            builder: (_, __) => Text(
+            builder: (_, _) => Text(
               'R\$ ${_economiaAnim.value.toStringAsFixed(2)}',
               style: const TextStyle(
                 color: Colors.white,
@@ -421,23 +402,27 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Primeira vez sem dados ─────────────────────────────────
+  // ── Primeira vez sem histórico de comparação ───────────────
   Widget _buildCardPrimeiraVez() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+        color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.qr_code_scanner, size: 36, color: AppColors.primary),
+          const Icon(
+            Icons.shopping_basket_outlined,
+            size: 36,
+            color: AppColors.primary,
+          ),
           const SizedBox(height: 12),
           const Text(
-            'Comece escaneando sua primeira nota',
+            'Monte sua primeira cesta',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -446,18 +431,15 @@ class _HomeScreenState extends State<HomeScreen>
           ),
           const SizedBox(height: 4),
           const Text(
-            'Descubra quanto você pode economizar na próxima compra.',
+            'Adicione produtos e compare a mesma compra entre supermercados.',
             style: TextStyle(color: Colors.grey, fontSize: 13),
           ),
           const SizedBox(height: 14),
           ElevatedButton.icon(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
-              );
-              _carregarResumo();
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProdutosScreen()),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -465,8 +447,8 @@ class _HomeScreenState extends State<HomeScreen>
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            icon: const Icon(Icons.qr_code_scanner, size: 18),
-            label: const Text('Escanear nota fiscal'),
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('Buscar produtos'),
           ),
         ],
       ),
@@ -475,28 +457,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Linha: economia do mês + EconoCoins ───────────────────
   Widget _buildLinhaDados() {
-    final scans = _resumo!.totalComparacoes;
-    String nivel = scans >= 21
-        ? 'Ouro'
-        : scans >= 6
-        ? 'Prata'
-        : 'Bronze';
-    Color corNivel = scans >= 21
-        ? Colors.amber
-        : scans >= 6
-        ? Colors.blueGrey.shade400
-        : const Color(0xFFCD7F32);
-
     return Row(
       children: [
-        // Economia do mês
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.secondary.withOpacity(0.1),
+              color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.2),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -523,30 +494,31 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         const SizedBox(width: 12),
-        // EconoCoins + nível
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.06),
+              color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'EconoWayer $nivel',
-                  style: TextStyle(
-                    color: corNivel,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Text(
+                  'EconoCoins',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.bolt, color: AppColors.secondary, size: 18),
+                    const Icon(
+                      Icons.bolt,
+                      color: AppColors.secondary,
+                      size: 18,
+                    ),
                     Text(
                       ' ${_resumo!.econoCoins}',
                       style: const TextStyle(
@@ -557,9 +529,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                const Text(
-                  'EconoCoins',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                Text(
+                  '${_resumo!.totalNotasValidas} NFC-e ${_resumo!.totalNotasValidas == 1 ? 'válida' : 'válidas'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
@@ -569,14 +541,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Progresso mapa (Princípio 5 — Efeito Zeigarnik) ────────
+  // ── Progresso de contribuição do mapa de preços ───────────
   Widget _buildProgressoMapa() {
     final resumo = _resumo!;
 
-    // Cálculo de metas / scans restantes para desbloqueio
-    const int metaScans = 10;
-    final int scansAtuais = resumo.totalComparacoes;
-    final int faltamScans = (metaScans - scansAtuais).clamp(0, metaScans);
+    final int notasValidas = resumo.totalNotasValidas;
     final double porcentagem = resumo.progressoMapa.clamp(0.0, 1.0);
 
     return InkWell(
@@ -591,17 +560,16 @@ class _HomeScreenState extends State<HomeScreen>
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
+          color: AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: AppColors.primary.withOpacity(0.2),
+            color: AppColors.primary.withValues(alpha: 0.2),
             width: 1.5,
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabeçalho com ícone de cadeado/progresso
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -610,20 +578,18 @@ class _HomeScreenState extends State<HomeScreen>
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.2),
+                        color: AppColors.secondary.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        porcentagem >= 1.0
-                            ? Icons.lock_open_rounded
-                            : Icons.lock_outline_rounded,
+                        Icons.map_outlined,
                         color: AppColors.primary,
                         size: 18,
                       ),
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      'Mapa de Araraquara',
+                      'Mapa de preços',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
@@ -655,7 +621,6 @@ class _HomeScreenState extends State<HomeScreen>
 
             const SizedBox(height: 14),
 
-            // Barra de Progresso Animada
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: TweenAnimationBuilder<double>(
@@ -673,29 +638,25 @@ class _HomeScreenState extends State<HomeScreen>
 
             const SizedBox(height: 12),
 
-            // Texto de Tensão Cognitiva / Gatilho Zeigarnik
             Row(
               children: [
                 Expanded(
                   child: Text(
-                    faltamScans > 0
-                        ? 'Faltam $faltamScans ${faltamScans == 1 ? 'scan' : 'scans'} para desbloquear a comparação com TODOS os mercados.'
-                        : '🎉 Você ajudou a completar o mapa de preços da cidade!',
+                    notasValidas == 0
+                        ? 'Escaneie uma NFC-e válida para contribuir com preços reais do mapa.'
+                        : 'Você já contribuiu com $notasValidas ${notasValidas == 1 ? 'nota válida' : 'notas válidas'}. Comparações nunca ficam bloqueadas por gamificação.',
                     style: TextStyle(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w600,
-                      color: faltamScans > 0
-                          ? Colors.black87
-                          : AppColors.primary,
+                      color: Colors.black87,
                     ),
                   ),
                 ),
-                if (faltamScans > 0)
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ],
             ),
           ],
@@ -704,57 +665,5 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Card do grid (original + parâmetro destaque) ───────────
-  Widget _buildDashboardCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool destaque = false,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: destaque
-              ? AppColors.secondary.withOpacity(0.1)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: destaque
-                ? AppColors.secondary.withOpacity(0.3)
-                : AppColors.secondary.withOpacity(0.1),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: destaque ? AppColors.secondary : AppColors.secondary,
-              size: 32,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: destaque ? AppColors.primary : Colors.grey,
-                fontSize: 12,
-                fontWeight: destaque ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ── Card das ações principais ─────────────────────────────
 }

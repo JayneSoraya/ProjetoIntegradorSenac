@@ -1,129 +1,101 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import { pool } from '../database';
-import jwt from 'jsonwebtoken';
+import { AuthService } from '../services/authService';
+import { env, isProduction } from '../config/env';
+import { clearLoginPairFailures, recordLoginFailure } from '../middleware/securityMiddleware';
+import { logger } from '../lib/logger';
 
-export const cadastrarUsuario = async (req: Request, res: Response) => {
-  const { nome, email, senha } = req.body;
-
-  if (!nome || !email || !senha) {
-    return res.status(400).json({
-      erro: 'Campos obrigatórios: nome, email e senha.',
-    });
-  }
-
-  const client = await pool.connect();
+export async function cadastrarUsuario(req: Request, res: Response) {
+  const { nome, email, senha } = req.body ?? {};
 
   try {
-    await client.query('BEGIN');
-
-    const contaExistente = await client.query(
-      'SELECT id_conta FROM conta WHERE email = $1',
-      [email]
-    );
-
-    if (contaExistente.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({
-        erro: 'Este e-mail já está cadastrado.',
-      });
-    }
-
-    const senhaCriptografada = await bcrypt.hash(senha, 10);
-
-    const resultConta = await client.query(
-      `INSERT INTO conta (tipo_conta, email, senha, nome)
-       VALUES ('USUARIO', $1, $2, $3)
-       RETURNING id_conta`,
-      [email, senhaCriptografada, nome]
-    );
-
-    const idConta = resultConta.rows[0].id_conta;
-
-    await client.query(
-      `INSERT INTO usuario (id_conta)
-       VALUES ($1)`,
-      [idConta]
-    );
-
-    await client.query('COMMIT');
-
+    await AuthService.cadastrarUsuario({ nome, email, senha });
     return res.status(201).json({
       status: 'sucesso',
-      mensagem: 'Usuário cadastrado com sucesso!',
+      mensagem: 'Usuário cadastrado com sucesso.',
     });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
 
-  } catch (erro: any) {
-    await client.query('ROLLBACK');
+    if (code === 'EMAIL_EXISTS') {
+      return res.status(409).json({ erro: 'Este e-mail já está cadastrado.' });
+    }
+    if (code === 'INVALID_NAME') {
+      return res.status(400).json({ erro: 'Informe um nome válido.' });
+    }
+    if (code === 'INVALID_EMAIL') {
+      return res.status(400).json({ erro: 'Informe um e-mail válido.' });
+    }
+    if (code === 'WEAK_PASSWORD') {
+      return res.status(400).json({ erro: 'A senha deve ter entre 8 caracteres e 72 bytes em UTF-8.' });
+    }
 
-    console.error('❌ ERRO CADASTRO:', erro);
-
-    return res.status(500).json({
-      erro: erro.message,
-    });
-
-  } finally {
-    client.release();
+    logger.error('auth_registration_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro interno ao criar a conta.' });
   }
-};
+}
 
-export const loginUsuario = async (req: Request, res: Response) => {
-  const { email, senha } = req.body;
+export async function loginUsuario(req: Request, res: Response) {
+  const { email, senha } = req.body ?? {};
 
-  if (!email || !senha) {
-    return res.status(400).json({
-      erro: 'Email e senha são obrigatórios.',
+  try {
+    const resultado = await AuthService.login(email, senha);
+    clearLoginPairFailures(req);
+
+    // O portal web usa cookie HttpOnly; o app Android continua consumindo o token Bearer.
+    res.cookie('econoway_session', resultado.token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'strict',
+      path: '/api',
+      maxAge: env.jwtExpiresInSeconds * 1000,
     });
+
+    return res.status(200).json({ status: 'sucesso', ...resultado });
+  } catch (error) {
+    const code = error instanceof Error ? error.message : '';
+
+    if (code === 'INVALID_CREDENTIALS') {
+      recordLoginFailure(req);
+      return res.status(401).json({ erro: 'E-mail ou senha inválidos.' });
+    }
+    if (code === 'ACCOUNT_DISABLED') {
+      return res.status(403).json({ erro: 'Conta indisponível.' });
+    }
+
+    logger.error('auth_login_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro interno no login.' });
+  }
+}
+
+export async function minhaConta(req: Request, res: Response) {
+  if (!req.auth) {
+    return res.status(401).json({ erro: 'Autenticação obrigatória.' });
   }
 
   try {
-    const result = await pool.query(
-      'SELECT * FROM conta WHERE email = $1',
-      [email]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        erro: 'Usuário não encontrado',
-      });
+    const usuario = await AuthService.buscarConta(req.auth.accountId);
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Conta não encontrada.' });
     }
-
-    const usuario = result.rows[0];
-
-    const senhaValida = await bcrypt.compare(senha, usuario.senha);
-
-    if (!senhaValida) {
-      return res.status(401).json({
-        erro: 'Senha inválida',
-      });
-    }
-
-
-const token = jwt.sign(
-  {
-    id_conta: usuario.id_conta,
-  },
-  process.env.JWT_SECRET || 'dev_secret',
-  {
-    expiresIn: '7d',
+    return res.status(200).json({ usuario });
+  } catch (error) {
+    logger.error('auth_me_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao consultar conta.' });
   }
-);
+}
 
+export async function recuperarSenha(_req: Request, res: Response) {
+  return res.status(501).json({
+    erro: 'Recuperação de senha ainda não está habilitada neste ambiente.',
+  });
+}
 
-return res.json({
-  status: 'sucesso',
-  usuario: {
-    nome: usuario.nome,
-  },
-  token,
-});
-
-
-  } catch (erro: any) {
-    console.error('❌ ERRO LOGIN:', erro);
-
-    return res.status(500).json({
-      erro: 'Erro interno no login',
-    });
-  }
-};
+export async function logout(_req: Request, res: Response) {
+  res.clearCookie('econoway_session', {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict',
+    path: '/api',
+  });
+  return res.status(204).send();
+}

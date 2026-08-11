@@ -6,14 +6,11 @@ class CarrinhoVazioScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Carrinho vazio'),
-      ),
+      appBar: AppBar(title: const Text('Carrinho vazio')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-
             const SizedBox(height: 40),
 
             Container(
@@ -27,10 +24,7 @@ class CarrinhoVazioScreen extends StatelessWidget {
                 child: Text(
                   'Nenhum produto\nadicionado',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -49,36 +43,23 @@ class CarrinhoVazioScreen extends StatelessWidget {
                 padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
-
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Itens'),
-                        Text('0'),
-                      ],
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [Text('Itens'), Text('0')],
                     ),
 
                     SizedBox(height: 10),
 
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Subtotal'),
-                        Text('R\$ 0,00'),
-                      ],
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [Text('Subtotal'), Text('R\$ 0,00')],
                     ),
 
                     SizedBox(height: 10),
 
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('Mercados disponíveis'),
-                        Text('0'),
-                      ],
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [Text('Mercados disponíveis'), Text('0')],
                     ),
                   ],
                 ),
@@ -92,12 +73,9 @@ class CarrinhoVazioScreen extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: null,
-                child: const Text(
-                  'Comparar preços',
-                ),
+                child: const Text('Comparar preços'),
               ),
             ),
-
           ],
         ),
       ),

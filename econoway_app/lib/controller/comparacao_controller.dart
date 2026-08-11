@@ -1,56 +1,54 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
-
-import '../controller/carrinho_controller.dart';
-import '../services/auth_service.dart';
+import '../core/network/api_client.dart';
+import '../models/mercado_comparacao_dto.dart';
+import 'carrinho_controller.dart';
 
 class ComparacaoController {
-  final String baseUrl = 'http://192.168.1.11:3333/api';
+  final CarrinhoController? cart;
 
-  Future<List<dynamic>> comparar() async {
-    try {
-      final carrinho = CarrinhoController();
+  ComparacaoController([this.cart]);
 
-      if (carrinho.itens.isEmpty) {
-        throw Exception('Carrinho vazio. Adicione produtos antes de comparar.');
-      }
-
-      final token = await AuthService.getToken();
-
-      final response = await http.post(
-        Uri.parse('$baseUrl/comparacao'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'itens': carrinho.itens
-              .map(
-                (item) => {
-                  'idProduto': item.idProduto,
-                  'quantidade': item.quantidade,
-                },
-              )
-              .toList(),
-        }),
+  Future<ComparacaoResultadoDTO> comparar({
+    List<int>? supermercados,
+    bool salvar = false,
+  }) async {
+    final currentCart = cart;
+    if (currentCart == null || currentCart.itens.isEmpty) {
+      throw ApiException(
+        'Carrinho vazio. Adicione produtos antes de comparar.',
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-
-        return data;
-      }
-
-      if (response.statusCode == 400) {
-        final erro = jsonDecode(response.body);
-
-        throw Exception(erro['erro'] ?? 'Carrinho inválido.');
-      }
-
-      throw Exception('Erro ao comparar mercados.');
-    } catch (e) {
-      rethrow;
     }
+
+    final payload = <String, dynamic>{
+      'itens': currentCart.itens
+          .map(
+            (item) => {
+              'idProduto': item.idProduto,
+              'quantidade': item.quantidade,
+            },
+          )
+          .toList(),
+      if (supermercados != null && supermercados.isNotEmpty)
+        'supermercados': supermercados,
+      'salvar': salvar,
+      'estrategia': supermercados != null && supermercados.isNotEmpty
+          ? 'SELECIONADOS'
+          : 'MENOR_TOTAL',
+    };
+
+    final data = await ApiClient.post('/comparacao', body: payload);
+    if (data is! Map<String, dynamic>) {
+      throw ApiException('Resposta de comparação inválida.');
+    }
+    try {
+      return ComparacaoResultadoDTO.fromJson(data);
+    } on FormatException {
+      throw ApiException('Resposta de comparação inválida.');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> historico() async {
+    final data = await ApiClient.get('/comparacao/historico');
+    if (data is! List) throw ApiException('Resposta de histórico inválida.');
+    return data.whereType<Map<String, dynamic>>().toList();
   }
 }

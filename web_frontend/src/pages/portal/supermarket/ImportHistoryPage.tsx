@@ -1,0 +1,13 @@
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import type { PortalUser } from '../../../lib/api';
+import { portalApi, type ImportHistoryItem, type ManagedMarket } from '../../../lib/portalApi';
+import { PortalShell } from '../../../components/portal/PortalShell';
+
+export function ImportHistoryPage({ user }: { user: PortalUser }) {
+  const [params, setParams] = useSearchParams(); const [markets, setMarkets] = useState<ManagedMarket[]>([]); const [history, setHistory] = useState<ImportHistoryItem[]>([]); const [error, setError] = useState('');
+  const marketId = Number(params.get('market') || markets[0]?.id_supermercado || 0);
+  useEffect(() => { portalApi.managedMarkets().then((items) => { setMarkets(items); if (!params.get('market') && items[0]) setParams({ market: String(items[0].id_supermercado) }, { replace: true }); }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!marketId) return; portalApi.importHistory(marketId).then(setHistory).catch(() => setError('Não foi possível carregar o histórico.')); }, [marketId]);
+  return <PortalShell user={user} mode="supermarket" title="Histórico de importações" subtitle="Auditoria operacional de cargas de preço publicadas.">{markets.length > 1 && <select value={marketId} onChange={(e) => setParams({ market: e.target.value })} className="mb-5 rounded-xl border border-border-main bg-white px-4 py-3">{markets.map((item) => <option key={item.id_supermercado} value={item.id_supermercado}>{item.nome_fantasia}</option>)}</select>}{error && <p className="rounded-xl bg-red-50 p-4 text-red-700">{error}</p>}<div className="overflow-x-auto rounded-2xl border border-border-main bg-white"><table className="w-full min-w-[760px] text-left text-sm"><thead className="border-b border-border-main bg-gray-50 text-xs uppercase"><tr><th className="p-4">Data</th><th className="p-4">Arquivo</th><th className="p-4">Formato</th><th className="p-4">Registros</th><th className="p-4">Status</th></tr></thead><tbody>{history.length ? history.map((item) => <tr key={item.id_importacao} className="border-b border-border-main"><td className="p-4">{new Date(item.criada_em).toLocaleString('pt-BR')}</td><td className="p-4"><strong className="text-text-heading">{item.nome_arquivo}</strong><p className="font-mono text-[10px] text-text-main/70">{item.checksum_sha256.slice(0, 16)}…</p></td><td className="p-4">{item.formato}</td><td className="p-4">{item.total_registros}</td><td className="p-4"><span className="rounded-full bg-green-50 px-3 py-1 text-xs font-bold text-green-700">{item.status}</span></td></tr>) : <tr><td colSpan={5} className="p-6">Nenhuma importação registrada.</td></tr>}</tbody></table></div></PortalShell>;
+}
