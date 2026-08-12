@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { buscarResumo } from '../controllers/economiacontroller';
+import { buscarResumo } from '../controllers/economiaController';
 import { autenticar } from '../middleware/authMiddleware';
 
 const router = Router();

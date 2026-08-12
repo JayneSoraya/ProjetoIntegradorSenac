@@ -1,3 +1,4 @@
+import 'package:econoway_app/screens/historico_compras_screen.dart';
 import 'package:econoway_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
@@ -368,6 +369,7 @@ class _HomeScreenState extends State<HomeScreen>
                       icon: Icons.history,
                       title: 'Histórico',
                       subtitle: 'Suas economias',
+                      onTap: () => Navigator.push(context, MaterialPageRoute (builder: (_) => const HistoricoComprasScreen())),
                     ),
 
                     if (_tipoConta == 'ADMIN')

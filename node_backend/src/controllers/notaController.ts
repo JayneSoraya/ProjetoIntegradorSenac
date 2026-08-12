@@ -76,9 +76,9 @@ const valorTotalNota = totalMatch
 )?.[1];
 
 console.log('🧾 Nota:', numeroNota);
-   // console.log('========== HTML TEXTO ==========');
-//console.log($.text());
-//console.log('===============================');
+console.log('========== HTML TEXTO ==========');
+console.log($.text());
+console.log('===============================');
 
 const emissaoMatch = textoPagina.match(
   /Emissão:\s*(\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})/
@@ -92,7 +92,7 @@ const dataEmissaoDB = emissaoMatch
     )
   : new Date();
 
-//console.log('📅 Emissão:', dataEmissao);
+console.log('📅 Emissão:', dataEmissaoDB);
 
     // ── 2. Extrai dados do emitente ────────────────────────
     const nomeEmitente = $('#u20').text().trim();
@@ -113,9 +113,9 @@ const dataEmissaoDB = emissaoMatch
       }
     });
 
-   //console.log('🏪 Emitente:', nomeEmitente);
-   // console.log('📋 CNPJ:', cnpj);
-    //console.log('📍 Endereço:', endereco);
+   console.log('🏪 Emitente:', nomeEmitente);
+   console.log('📋 CNPJ:', cnpj);
+  console.log('📍 Endereço:', endereco);
 
     if (!cnpj) {
       return res.status(422).json({
@@ -201,6 +201,9 @@ const dataEmissaoDB = emissaoMatch
     if (!req.usuario) {
   return res.status(401).json({ erro: 'Usuário não autenticado.' });
 }
+console.log('👤 Usuário:', req.usuario);
+console.log('🆔 id_usuario:', req.usuario?.id_usuario);
+console.log(req.usuario);
 const notaResult = await pool.query(
   `
   INSERT INTO nota_fiscal (

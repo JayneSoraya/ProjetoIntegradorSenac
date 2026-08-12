@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:econoway_app/services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
+import 'editar_mercado_screen.dart';
 
 class MercadoHomeScreen extends StatelessWidget {
   const MercadoHomeScreen({super.key});
@@ -59,7 +60,14 @@ class MercadoHomeScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.edit),
                         tooltip: 'Editar dados',
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const EditarMercadoScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

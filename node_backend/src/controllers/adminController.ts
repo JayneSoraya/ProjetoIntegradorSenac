@@ -113,7 +113,7 @@ export const listarUsuarios = async (req: Request, res: Response) => {
 
     sql += ` GROUP BY c.id_conta, c.nome, c.email, c.status_conta,
              c.data_cadastro, c.ultimo_login, u.id_usuario,
-             u.saldo_receita, u.aceite_lgpd
+             u.saldo_receita, u.aceita_lgpd
              ORDER BY c.nome`;
 
     const resultado = await pool.query(sql, params);
@@ -124,10 +124,9 @@ export const listarUsuarios = async (req: Request, res: Response) => {
   }
 };
 
-// ── PATCH /api/admin/usuarios/:id/bloquear ─────────────────
 export const bloquearUsuario = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { bloquear } = req.body; // true ou false
+  const { bloquear } = req.body; 
   try {
     await pool.query(
       'UPDATE conta SET status_conta = $1 WHERE id_conta = $2',
@@ -141,7 +140,6 @@ export const bloquearUsuario = async (req: Request, res: Response) => {
   }
 };
 
-// ── GET /api/admin/produtos ────────────────────────────────
 export const listarProdutosAdmin = async (req: Request, res: Response) => {
   const { busca, categoria } = req.query;
   try {
@@ -182,7 +180,6 @@ export const listarProdutosAdmin = async (req: Request, res: Response) => {
   }
 };
 
-// ── PATCH /api/admin/produtos/:id/categoria ────────────────
 export const corrigirCategoria = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { categoria } = req.body;

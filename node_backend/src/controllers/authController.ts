@@ -110,7 +110,7 @@ export const loginUsuario = async (req: Request, res: Response) => {
 const token = jwt.sign(
   {
     id_conta: usuario.id_conta,
-    id_usuario: usuario.id_conta,
+    id_usuario: usuario.id_usuario,
     tipo_conta:usuario.tipo_conta,
   },
   process.env.JWT_SECRET || 'dev_secret',

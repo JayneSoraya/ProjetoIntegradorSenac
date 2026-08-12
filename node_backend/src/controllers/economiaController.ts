@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
 
-// GET /api/economia/resumo
 // Retorna todos os dados reais do usuário para a HomeScreen
 export const buscarResumo = async (req: Request, res: Response) => {
   const { id_conta } = req.usuario!;

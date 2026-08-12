@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { processarNota } from '../controllers/nota.controller';
+import { processarNota } from '../controllers/notaController';
 import { autenticar } from '../middleware/authMiddleware';
 
 const router = Router();

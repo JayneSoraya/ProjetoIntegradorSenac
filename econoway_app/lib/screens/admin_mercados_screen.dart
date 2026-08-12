@@ -352,7 +352,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
           FloatingActionButton(
             heroTag: 'csv',
             mini: true,
-            backgroundColor: AppColors.secondary,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             tooltip: 'Importar CSV',
             onPressed: _importarCSV,
