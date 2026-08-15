@@ -28,7 +28,6 @@ class AuthService {
           .timeout(const Duration(seconds: 7));
 
       final data = jsonDecode(response.body);
-      print(data);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final prefs = await SharedPreferences.getInstance();
@@ -54,7 +53,7 @@ class AuthService {
 
   static Future<String> getTipoConta() async {
     final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_tipoContaKey) ?? 'USER';
+    return prefs.getString(_tipoContaKey) ?? 'USER';
   }
 
   // 3. CADASTRAR

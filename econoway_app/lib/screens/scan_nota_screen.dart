@@ -26,9 +26,6 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
   }
 
   Future<void> _processarQrCode(String urlQrCode) async {
-    print('🚀 Tentando processar: $urlQrCode');
-    print('Processando: $_processando | Escaneado: $_escaneado');
-
     if (_processando || _escaneado) return;
 
     setState(() {
@@ -40,8 +37,6 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
 
     try {
       final token = await AuthService.getToken();
-      print('🔑 TOKEN: $token');
-
       final response = await http
           .post(
             Uri.parse('http://192.168.1.11:3333/api/notas/processar'),
@@ -54,7 +49,6 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(response.body);
-      print('📡 Resposta do servidor: ${response.statusCode} - $data');
 
       if (!mounted) return;
 
@@ -62,7 +56,6 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           ? _mostrarSucesso(data)
           : _mostrarErro(data['erro'] ?? 'Erro ao processar nota.');
     } catch (e) {
-      print('❌ Erro: $e');
       if (!mounted) return;
       _mostrarErro('Não foi possível conectar ao servidor.');
     }
@@ -183,9 +176,6 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
               final barcode = capture.barcodes.firstOrNull;
               final url = barcode?.rawValue;
 
-              print('🔍 QR detectado: $url');
-
-              // Chama _processarQrCode com a URL capturada
               if (url != null && url.isNotEmpty) {
                 _processarQrCode(url);
               }

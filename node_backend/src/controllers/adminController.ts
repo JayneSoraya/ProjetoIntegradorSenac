@@ -94,7 +94,7 @@ export const listarUsuarios = async (req: Request, res: Response) => {
         c.ultimo_login,
         u.id_usuario,
         u.saldo_receita,
-        u.aceite_lgpd,
+        u.aceita_lgpd,
         COUNT(DISTINCT ca.id_carrinho) AS total_comparacoes,
         -- EconoCoins: 50 base + 100 por comparação
         (50 + COUNT(DISTINCT ca.id_carrinho) * 100) AS econo_coins

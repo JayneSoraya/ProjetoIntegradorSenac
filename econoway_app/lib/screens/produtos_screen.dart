@@ -36,7 +36,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
   Future<void> carregarProdutos() async {
     try {
       final resultado = await controller.buscarProduto('');
-      print('✅ Produtos carregados: ${resultado.length}');
+
       if (resultado.isNotEmpty) {
         print(
           'Exemplo: ${resultado.first.nomeProduto} | cat: ${resultado.first.categoria}',
@@ -108,9 +108,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
           (p.marca ?? '').toLowerCase().contains(textoBusca.toLowerCase());
       return categoriaOk && buscaOk;
     }).toList();
-    print('📦 Total produtos: ${produtos.length}');
-    print('🔍 Busca: "$textoBusca" | Categoria: "$categoriaSelecionada"');
-    print('🎯 Filtrados: ${filtrados.length}');
     return Scaffold(
       body: SafeArea(
         child: Padding(
