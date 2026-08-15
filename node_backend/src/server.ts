@@ -10,6 +10,8 @@ import supermercadoRoutes from './routes/supermercadoRoutes';
 import produtoRoutes from './routes/produtoRoutes';
 import comparacaoRoutes from './routes/comparacaoRoutes';
 import historicoRoutes from './routes/historicoRoutes';
+import progressoRoutes from './routes/progressoRoutes';
+
 
 dotenv.config();
 
@@ -24,6 +26,7 @@ app.use('/api/comparacao', comparacaoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/historico', historicoRoutes);
 app.use('/api/supermercados',supermercadoRoutes);
+app.use('/api/progresso', progressoRoutes);
 
 
 // ROTA DE TESTE 

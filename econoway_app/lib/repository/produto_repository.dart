@@ -9,7 +9,6 @@ class ProdutoRepository implements IProdutoRepository {
 
   Future<Map<String, String>> get _headers async {
     final token = await AuthService.getToken();
-    print('TOKEN: $token');
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
@@ -34,8 +33,6 @@ class ProdutoRepository implements IProdutoRepository {
       ).replace(queryParameters: params);
 
       final response = await http.get(uri, headers: await _headers);
-      print('STATUS: ${response.statusCode}');
-      print('BODY: ${response.body}');
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         return data.map((json) => ProdutoDTO.fromJson(json)).toList();

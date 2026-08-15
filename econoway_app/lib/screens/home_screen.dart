@@ -11,6 +11,7 @@ import 'produtos_screen.dart';
 import 'scan_nota_screen.dart';
 import 'admin_screen.dart';
 import 'mercado_home_screen.dart';
+import '../widgets/progresso_mapa_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -260,9 +261,11 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   )
                 else if (_resumo != null && !_resumo!.semDados)
-                  _buildCardEconomia()
-                else
-                  _buildCardPrimeiraVez(),
+                  _buildCardEconomia(),
+
+                const SizedBox(height: 15),
+
+                if (!_carregando) const ProgressoMapaWidget(),
 
                 const SizedBox(height: 15),
 
@@ -271,11 +274,6 @@ class _HomeScreenState extends State<HomeScreen>
 
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
                   const SizedBox(height: 5),
-
-                // ── Progresso mapa ────────────────────────────
-                if (!_carregando && _resumo != null) _buildProgressoMapa(),
-
-                const SizedBox(height: 24),
 
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -350,26 +348,15 @@ class _HomeScreenState extends State<HomeScreen>
 
                     _buildDashboardCard(
                       context,
-                      icon: Icons.qr_code_scanner,
-                      title: 'Escanear Nota',
-                      subtitle: '+100 saveCoins por scan',
-                      destaque: true,
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const ScanNotaScreen(),
-                          ),
-                        );
-                        _carregarResumo();
-                      },
-                    ),
-                    _buildDashboardCard(
-                      context,
                       icon: Icons.history,
                       title: 'Histórico',
                       subtitle: 'Suas economias',
-                      onTap: () => Navigator.push(context, MaterialPageRoute (builder: (_) => const HistoricoComprasScreen())),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HistoricoComprasScreen(),
+                        ),
+                      ),
                     ),
 
                     if (_tipoConta == 'ADMIN')
@@ -471,58 +458,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Primeira vez sem dados ─────────────────────────────────
-  Widget _buildCardPrimeiraVez() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.qr_code_scanner, size: 36, color: AppColors.primary),
-          const SizedBox(height: 12),
-          const Text(
-            'Comece escaneando sua primeira nota',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Descubra quanto você pode economizar na próxima compra.',
-            style: TextStyle(color: Colors.grey, fontSize: 13),
-          ),
-          const SizedBox(height: 14),
-          ElevatedButton.icon(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
-              );
-              _carregarResumo();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            icon: const Icon(Icons.qr_code_scanner, size: 18),
-            label: const Text('Escanear nota fiscal'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Linha: economia do mês + EconoCoins ───────────────────
   Widget _buildLinhaDados() {
     final scans = _resumo!.totalComparacoes;
@@ -616,140 +551,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
-    );
-  }
-
-  // ── Progresso mapa (Princípio 5 — Efeito Zeigarnik) ────────
-  Widget _buildProgressoMapa() {
-    final resumo = _resumo!;
-
-    // Cálculo de metas / scans restantes para desbloqueio
-    const int metaScans = 10;
-    final int scansAtuais = resumo.totalComparacoes;
-    final int faltamScans = (metaScans - scansAtuais).clamp(0, metaScans);
-    final double porcentagem = resumo.progressoMapa.clamp(0.0, 1.0);
-
-    return InkWell(
-      onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
-        );
-        _carregarResumo();
-      },
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: AppColors.primary.withOpacity(0.2),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Cabeçalho com ícone de cadeado/progresso
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        porcentagem >= 1.0
-                            ? Icons.lock_open_rounded
-                            : Icons.lock_outline_rounded,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Mapa de Araraquara',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${(porcentagem * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            // Barra de Progresso Animada
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 1200),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 0, end: porcentagem),
-                builder: (context, value, _) => LinearProgressIndicator(
-                  value: value,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    faltamScans > 0
-                        ? 'Faltam $faltamScans ${faltamScans == 1 ? 'scan' : 'scans'} para desbloquear a comparação com TODOS os mercados.'
-                        : '🎉 Você ajudou a completar o mapa de preços da cidade!',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: faltamScans > 0
-                          ? Colors.black87
-                          : AppColors.primary,
-                    ),
-                  ),
-                ),
-                if (faltamScans > 0)
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.primary,
-                    size: 20,
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 

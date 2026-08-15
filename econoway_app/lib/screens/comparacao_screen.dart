@@ -69,9 +69,6 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       );
 
       if (response.statusCode == 200) {
-        print('STATUS: ${response.statusCode}');
-        print(response.body);
-
         final List dados = jsonDecode(response.body);
 
         setState(() {
@@ -331,7 +328,6 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       )
-                    
                     else
                       const Text(
                         'Este mercado não possui todos os itens da lista.',

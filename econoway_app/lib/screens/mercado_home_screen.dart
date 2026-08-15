@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:econoway_app/services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
-import 'editar_mercado_screen.dart';
+import 'admin_mercado_cadastro_screen.dart';
 
 class MercadoHomeScreen extends StatelessWidget {
   const MercadoHomeScreen({super.key});
@@ -64,7 +64,7 @@ class MercadoHomeScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const EditarMercadoScreen(),
+                              builder: (_) => const AdminMercadoCadastroScreen(),
                             ),
                           );
                         },
