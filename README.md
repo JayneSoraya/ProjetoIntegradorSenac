@@ -1,8 +1,22 @@
+<h4 align = "center">
+    :construction: Projeto em construção :construction:
+</h4>
+
 # EconoWay
 
 Projeto Integrador de Análise e Desenvolvimento de Sistemas do Centro Universitário Senac.
 
 O EconoWay compara a mesma cesta de supermercado em diferentes estabelecimentos. O consumidor usa o aplicativo Android; supermercados e administradores trabalham pelo portal web.
+
+---
+
+# Badges
+
+![CI Status](https://github.com/JayneSoraya/ProjetoIntegradorSenac/actions/workflows/ci.yml/badge.svg)
+[![CodeQL Analysis](https://github.com/JayneSoraya/ProjetoIntegradorSenac/actions/workflows/codeql.yml/badge.svg)](https://github.com/JayneSoraya/ProjetoIntegradorSenac/actions/workflows/codeql.yml)
+![License](https://img.shields.io/badge/License-CC%20BY%204.0-0B5345?style=flat&logo=creativecomms)
+
+---
 
 ## Estado atual
 
@@ -15,7 +29,30 @@ cadastro/login → produtos → carrinho persistente → mercados
 
 O banco Neon, o deploy HTTPS, o monitoramento e os backups de produção ainda precisam de uma rodada própria de validação. O ambiente local é o caminho recomendado para desenvolvimento.
 
+---
+
 ## Estrutura
+<!--START_LANGS-->
+🛠️ **Linguagens e Base**:  
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/dart/dart-original.svg" width="24" height="24" /> **Dart (42.8%)** — Core do Aplicativo Mobile Flutter.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" width="24" height="24" /> **TypeScript (23.8%)** — Lógica do Backend e API Node.js.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg" width="24" height="24" /> **C++ (23.1%)** — Integração nativa do motor do Flutter.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cmake/cmake-original.svg" width="24" height="24" /> **CMake (4.5%)** — Gerenciamento de compilação nativa.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg" width="24" height="24" /> **CSS (3.5%)** — Estilização web.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg" width="24" height="24" /> **HTML (1.7%)** — Estruturação de páginas.
+<!--END_LANGS-->
+
+📱 **Mobile (Aplicativo):**  
+Flutter | Dart | Provider/Controller | Secure Session Storage | Camera & NFC-e Scanner
+
+🖼️ **Front-end Web (Portal & Landing Page):**  
+React | Vite | TypeScript | Tailwind CSS | Framer Motion | Lucide Icons | Axios
+
+⚙️ **Back-end (Servidor e API REST):**  
+Node.js | Express | TypeScript | JWT Auth | Security Middleware & CSRF | REST API Contract
+
+🗄️ **Banco de Dados, DevOps & Infraestrutura:**  
+PostgreSQL | Neon Serverless | Firebird DB | Docker Compose | GitHub Actions (CI & CodeQL)
 
 - `econoway_app/`: aplicativo Flutter para Android;
 - `node_backend/`: API Node.js, TypeScript, domínio, migrations e testes;
@@ -23,6 +60,8 @@ O banco Neon, o deploy HTTPS, o monitoramento e os backups de produção ainda p
 - `docs/`: documentação técnica e registros de execução;
 - `compose.yaml`: stack local da API, banco e frontend;
 - `scripts/`: verificações e rotinas de desenvolvimento.
+
+---
 
 ## Pré-requisitos
 
@@ -104,6 +143,16 @@ Não execute as migrations `001` a `005` diretamente no Neon existente. Antes, c
 ## Documentação
 
 Comece pelo [`docs/00-INDEX.md`](docs/00-INDEX.md). Ele organiza os runbooks, decisões, riscos, arquitetura, banco e o roadmap para consulta no Obsidian.
+
+# Pessoas Contribuidoras
+
+Contribuições são sempre bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um pull request.
+
+# Pessoas Desenvolvedoras do Projeto
+
+| [<img src="https://avatars.githubusercontent.com/u/67378860?v=4" width=115 style="border-radius: 50%;"><br><sub>**Jayne Soraya**</sub>](https://github.com/JayneSoraya) | [<img src="https://avatars.githubusercontent.com/u/85366337?v=4" width=115 style="border-radius: 50%;"><br><sub>**Diego Rodrigues**</sub>](https://github.com/Yurtachi) | [<img src="https://avatars.githubusercontent.com/u/75775034?v=4" width=115 style="border-radius: 50%;"><br><sub>**Vinícius Santos**</sub>](https://github.com/itvinl) |
+| :---: | :---: | :---: |
+| Desenvolvedora Full-Stack | Desenvolvedor Full-Stack | Desenvolvedor Full-Stack |
 
 ## Licença
 
