@@ -1,2 +1,30 @@
+# Secrets / local environment
 .env
-node_modules
+.env.*
+!.env.example
+!.env.compose.example
+
+# Node
+**/node_modules/
+**/dist/
+**/coverage/
+*.log
+npm-debug.log*
+
+# Flutter / Dart
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/build/
+**/.pub-cache/
+
+# Editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/*.log
+
+# Local database exports containing operator-specific metadata
+*.dump
+*.backup
