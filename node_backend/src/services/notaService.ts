@@ -34,8 +34,19 @@ function classificarProduto(nome: string): string {
 
 export class NotaService {
   static async processarNotaPorUrl(urlQrCode: string, idUsuario: number) {
-    // 1. Busca HTML da SEFAZ SP seguindo redirect
-    const resposta = await axios.get(urlQrCode, {
+   // Valida a URL do QR Code contra SSRF
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(urlQrCode);
+    } catch (error) {
+      throw new Error('URL do QR Code inválida ou malformada.');
+    }
+  if (parsedUrl.protocol !== 'https:'){
+    throw new Error('Apenas URLS (HTTPS) seguras são');
+  }
+
+  // 1. Busca HTML da SEFAZ SP seguindo redirect
+    const resposta = await axios.get(parsedUrl.toString(), {
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
