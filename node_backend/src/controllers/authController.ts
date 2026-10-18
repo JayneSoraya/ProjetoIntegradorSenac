@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { UsuarioService } from '../services/usuarioService';
 import { logger } from '../utils/logger';
-import jwt from 'jsonwebtoken';
+import * as jwt from 'jsonwebtoken';
 
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {

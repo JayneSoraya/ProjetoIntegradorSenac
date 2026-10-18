@@ -44,9 +44,71 @@ export class NotaService {
   if (parsedUrl.protocol !== 'https:'){
     throw new Error('Apenas URLS (HTTPS) seguras são');
   }
+  const hostname = parsedUrl.hostname.toLowerCase();
+  let baseHost = '';
+// Mapeamento de todas as SEFAZ do Brasil (CodeQL compliant)
+    if (hostname.endsWith('sefaz.ac.gov.br')) {
+      baseHost = 'sefaz.ac.gov.br';
+    } else if (hostname.endsWith('sefaz.al.gov.br')) {
+      baseHost = 'sefaz.al.gov.br';
+    } else if (hostname.endsWith('sefaz.am.gov.br')) {
+      baseHost = 'sefaz.am.gov.br';
+    } else if (hostname.endsWith('sefaz.ap.gov.br')) {
+      baseHost = 'sefaz.ap.gov.br';
+    } else if (hostname.endsWith('sefaz.ba.gov.br')) {
+      baseHost = 'sefaz.ba.gov.br';
+    } else if (hostname.endsWith('sefaz.ce.gov.br')) {
+      baseHost = 'sefaz.ce.gov.br';
+    } else if (hostname.endsWith('sefaz.df.gov.br')) {
+      baseHost = 'sefaz.df.gov.br';
+    } else if (hostname.endsWith('sefaz.es.gov.br')) {
+      baseHost = 'sefaz.es.gov.br';
+    } else if (hostname.endsWith('sefaz.go.gov.br')) {
+      baseHost = 'sefaz.go.gov.br';
+    } else if (hostname.endsWith('sefaz.ma.gov.br')) {
+      baseHost = 'sefaz.ma.gov.br';
+    } else if (hostname.endsWith('sefaz.mg.gov.br')) {
+      baseHost = 'sefaz.mg.gov.br';
+    } else if (hostname.endsWith('sefaz.ms.gov.br')) {
+      baseHost = 'sefaz.ms.gov.br';
+    } else if (hostname.endsWith('sefaz.mt.gov.br')) {
+      baseHost = 'sefaz.mt.gov.br';
+    } else if (hostname.endsWith('sefaz.pa.gov.br')) {
+      baseHost = 'sefaz.pa.gov.br';
+    } else if (hostname.endsWith('sefaz.pb.gov.br')) {
+      baseHost = 'sefaz.pb.gov.br';
+    } else if (hostname.endsWith('sefaz.pe.gov.br')) {
+      baseHost = 'sefaz.pe.gov.br';
+    } else if (hostname.endsWith('sefaz.pi.gov.br')) {
+      baseHost = 'sefaz.pi.gov.br';
+    } else if (hostname.endsWith('fazenda.pr.gov.br')) {
+      baseHost = 'www.fazenda.pr.gov.br';
+    } else if (hostname.endsWith('sefaz.rj.gov.br')) {
+      baseHost = 'sefaz.rj.gov.br';
+    } else if (hostname.endsWith('sefaz.rn.gov.br')) {
+      baseHost = 'sefaz.rn.gov.br';
+    } else if (hostname.endsWith('sefaz.ro.gov.br')) {
+      baseHost = 'sefaz.ro.gov.br';
+    } else if (hostname.endsWith('sefaz.rr.gov.br')) {
+      baseHost = 'sefaz.rr.gov.br';
+    } else if (hostname.endsWith('sefaz.rs.gov.br')) {
+      baseHost = 'sefaz.rs.gov.br';
+    } else if (hostname.endsWith('sefaz.sc.gov.br')) {
+      baseHost = 'sefaz.sc.gov.br';
+    } else if (hostname.endsWith('sefaz.se.gov.br')) {
+      baseHost = 'sefaz.se.gov.br';
+    } else if (hostname.endsWith('fazenda.sp.gov.br')) {
+      baseHost = 'www.fazenda.sp.gov.br';
+    } else if (hostname.endsWith('sefaz.to.gov.br')) {
+      baseHost = 'sefaz.to.gov.br';
+    } else {
+      throw new Error('Domínio da SEFAZ não autorizado ou estado inválido.');
+    }
 
+    const safeTargetUrl = `https://${baseHost}${parsedUrl.pathname}${parsedUrl.search}`;
+    
   // 1. Busca HTML da SEFAZ SP seguindo redirect
-    const resposta = await axios.get(parsedUrl.toString(), {
+    const resposta = await axios.get(safeTargetUrl.toString(), {
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
@@ -57,7 +119,7 @@ export class NotaService {
     });
 
     const $ = cheerio.load(resposta.data);
-    const textoPagina = $.text();
+    const textoPagina = $.root().text();
     const totalMatch = textoPagina.match(/Valor a pagar R\$:\s*([\d,.]+)/);
 
     const valorTotalNota = totalMatch
