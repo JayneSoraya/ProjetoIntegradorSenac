@@ -28,27 +28,23 @@ class _HomeScreenState extends State<HomeScreen>
 
   ResumoUsuario? _resumo;
   bool _carregando = true;
-  String? _tipoConta;
 
   Future<void> _verificarTipoConta() async {
     final tipo = await AuthService.getTipoConta();
 
     if (!mounted) return;
 
-    setState(() {
-      _tipoConta = tipo;
-    });
-
     if (tipo == 'MERCADO') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const MercadoHomeScreen()),
         );
       });
-    }
-    if (tipo == 'ADMIN') {
+    } else if (tipo == 'ADMIN') {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AdminScreen()),
@@ -84,9 +80,11 @@ class _HomeScreenState extends State<HomeScreen>
         _carregando = false;
       });
       _animController.forward();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _carregando = false);
+      setState(() {
+        _carregando = false;
+      });
     }
   }
 
@@ -186,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   MaterialPageRoute(builder: (_) => destino),
                                 );
 
-                                if (!mounted) return;
+                                if (!context.mounted) return;
 
                                 setState(() {});
                               },
@@ -227,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           onPressed: () async {
                             await AuthService.logout();
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -331,12 +329,15 @@ class _HomeScreenState extends State<HomeScreen>
                       icon: Icons.local_mall_outlined,
                       title: 'Listas de Compras',
                       subtitle: 'Avaliação de menor preço',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ProdutosScreen(),
-                        ),
-                      ),
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProdutosScreen(),
+                          ),
+                        );
+                        if (!context.mounted) return;
+                      },
                     ),
                     _buildDashboardCard(
                       context,
@@ -344,34 +345,21 @@ class _HomeScreenState extends State<HomeScreen>
                       title: 'Rotas de Viagens',
                       subtitle: 'Distâncias calculadas',
                     ),
-
                     _buildDashboardCard(
                       context,
                       icon: Icons.history,
                       title: 'Histórico',
                       subtitle: 'Suas economias',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const HistoricoComprasScreen(),
-                        ),
-                      ),
-                    ),
-
-                    if (_tipoConta == 'ADMIN')
-                      _buildDashboardCard(
-                        context,
-                        icon: Icons.admin_panel_settings,
-                        title: 'Administração',
-                        subtitle: 'Painel do sistema',
-                        destaque: true,
-                        onTap: () => Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const AdminScreen(),
+                            builder: (_) => const HistoricoComprasScreen(),
                           ),
-                        ),
-                      ),
+                        );
+                        if (!context.mounted) return;
+                      },
+                    ),
                   ],
                 ),
               ],
@@ -415,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 8),
           AnimatedBuilder(
             animation: _economiaAnim,
-            builder: (_, __) => Text(
+            builder: (_, _) => Text(
               'R\$ ${_economiaAnim.value.toStringAsFixed(2)}',
               style: const TextStyle(
                 color: Colors.white,
@@ -434,10 +422,13 @@ class _HomeScreenState extends State<HomeScreen>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ProdutosScreen()),
-              ),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProdutosScreen()),
+                );
+                if (!context.mounted) return;
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: AppColors.backgroundDark,
@@ -473,14 +464,15 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Row(
       children: [
-        // Economia do mês
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.2),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,14 +499,15 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         const SizedBox(width: 12),
-        // EconoCoins + nível
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,7 +523,7 @@ class _HomeScreenState extends State<HomeScreen>
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.bolt, color: AppColors.secondary, size: 18),
+                    const Icon(Icons.bolt, color: AppColors.secondary, size: 18),
                     Text(
                       ' ${_resumo!.econoCoins}',
                       style: const TextStyle(
@@ -553,7 +546,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Card do grid (original + parâmetro destaque) ───────────
   Widget _buildDashboardCard(
     BuildContext context, {
     required IconData icon,

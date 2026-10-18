@@ -46,21 +46,21 @@ class CarrinhoVazioScreen extends StatelessWidget {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [Text('Itens'), Text('0')],
+                      children: [Text('Itens'), Text('0')],
                     ),
 
                     SizedBox(height: 10),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [Text('Subtotal'), Text('R\$ 0,00')],
+                      children: [Text('Subtotal'), Text('R\$ 0,00')],
                     ),
 
                     SizedBox(height: 10),
 
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [Text('Mercados disponíveis'), Text('0')],
+                      children: [Text('Mercados disponíveis'), Text('0')],
                     ),
                   ],
                 ),

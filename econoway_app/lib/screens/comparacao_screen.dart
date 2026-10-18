@@ -101,20 +101,15 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       lista.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
     }
 
-    //if (filtro == 'Mais perto') {
-    //  lista.sort((a, b) => a.distancia.compareTo(b.distancia));
-    //}
-
     return lista;
   }
 
   double get economiaPotencial {
     final completos = mercadosOrdenados
-        .where((m) => m.carrinhoCompleto) // ← só completos
+        .where((m) => m.carrinhoCompleto)
         .toList();
     if (completos.length < 2) return 0;
 
-    // diferença entre o mais caro e o mais barato entre completos
     final diferenca = completos.last.total - completos.first.total;
     return diferenca > 0 ? diferenca : 0;
   }
@@ -176,84 +171,78 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
             const SizedBox(height: 15),
 
             Expanded(
-              child: ListView.builder(
-                itemCount: ordenados.length,
-                itemBuilder: (_, index) {
-                  final mercado = ordenados[index];
+              child: RadioGroup<int>(
+                groupValue: mercadoSelecionadoIndex,
+                onChanged: (value) {
+                  setState(() {
+                    mercadoSelecionadoIndex = value;
+                  });
+                },
+                child: ListView.builder(
+                  itemCount: ordenados.length,
+                  itemBuilder: (_, index) {
+                    final mercado = ordenados[index];
+                    final selecionado = mercadoSelecionadoIndex == index;
+                    final maisBarato = filtro == 'Menor preço' && index == 0;
 
-                  final selecionado = mercadoSelecionadoIndex == index;
-
-                  final maisBarato = filtro == 'Menor preço' && index == 0;
-
-                  return Card(
-                    child: ListTile(
-                      selected: selecionado,
-                      onTap: () {
-                        setState(() {
-                          mercadoSelecionadoIndex = index;
-                        });
-                      },
-                      title: Row(
-                        children: [
-                          Expanded(child: Text(mercado.nome)),
-                          if (maisBarato)
-                            const Chip(label: Text('Mais barato')),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Total: R\$ ${mercado.total.toStringAsFixed(2)}',
-                          ),
-                          Text(
-                            '${mercado.itensEncontrados}/${mercado.totalItens} produtos',
-                          ),
-
-                          if (!mercado.carrinhoCompleto)
+                    return Card(
+                      child: ListTile(
+                        selected: selecionado,
+                        onTap: () {
+                          setState(() {
+                            mercadoSelecionadoIndex = index;
+                          });
+                        },
+                        title: Row(
+                          children: [
+                            Expanded(child: Text(mercado.nome)),
+                            if (maisBarato)
+                              const Chip(label: Text('Mais barato')),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              '${mercado.itensFaltando} item(ns) faltando',
-                              style: const TextStyle(color: Colors.orange),
+                              'Total: R\$ ${mercado.total.toStringAsFixed(2)}',
                             ),
-
-                          if (mercado.carrinhoCompleto)
-                            const Text(
-                              'Carrinho completo',
-
-                              style: TextStyle(
-                                color: AppColors.secondary,
-                                fontWeight: FontWeight.bold,
+                            Text(
+                              '${mercado.itensEncontrados}/${mercado.totalItens} produtos',
+                            ),
+                            if (!mercado.carrinhoCompleto)
+                              Text(
+                                '${mercado.itensFaltando} item(ns) faltando',
+                                style: const TextStyle(color: Colors.orange),
                               ),
-                            ),
-                          if (selecionado)
-                            const Padding(
-                              padding: EdgeInsets.only(top: 6),
-
-                              child: Text(
-                                '✅ Mercado escolhido',
-
+                            if (mercado.carrinhoCompleto)
+                              const Text(
+                                'Carrinho completo',
                                 style: TextStyle(
                                   color: AppColors.secondary,
-
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                        ],
+                            if (selecionado)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 6),
+                                child: Text(
+                                  '✅ Mercado escolhido',
+                                  style: TextStyle(
+                                    color: AppColors.secondary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: Radio<int>(
+                          value: index,
+                          activeColor: AppColors.secondary,
+                        ),
                       ),
-                      trailing: Radio<int>(
-                        value: index,
-                        groupValue: mercadoSelecionadoIndex,
-                        activeColor: AppColors.secondary,
-                        onChanged: (value) {
-                          setState(() {
-                            mercadoSelecionadoIndex = value;
-                          });
-                        },
-                      ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
 
@@ -268,7 +257,6 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                       Text(carrinho.quantidadeTotal.toString()),
                     ],
                   ),
-
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -8,7 +8,7 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt_BR');
-  runApp(const EconoWayApp());
+    runApp(const EconoWayApp());
 }
 
 class EconoWayApp extends StatelessWidget {
@@ -48,7 +48,7 @@ class _SplashAuthState extends State<SplashAuth> {
 
     if (loggedIn) {
       final nome = await AuthService.getNome();
-
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen(nomeUsuario: nome)),

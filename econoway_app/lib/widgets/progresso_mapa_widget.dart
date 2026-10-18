@@ -185,7 +185,7 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
           // ── Barra animada ──────────────────────────────
           AnimatedBuilder(
             animation: _barraAnim,
-            builder: (_, __) => ClipRRect(
+            builder: (_, _) => ClipRRect(
               borderRadius: BorderRadius.circular(10),
               child: LinearProgressIndicator(
                 value: _barraAnim.value,

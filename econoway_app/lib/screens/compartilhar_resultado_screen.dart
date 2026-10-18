@@ -172,7 +172,9 @@ class CompartilharResultadoScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.secondary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.secondary.withValues(alpha: 0.3),
+                ),
               ),
               child: const Text(
                 '"Moradores de Araraquara já economizaram R\$ 1.240 '
@@ -222,7 +224,9 @@ class CompartilharResultadoScreen extends StatelessWidget {
               label: 'Copiar texto para Stories',
               cor: Colors.purple,
               onTap: () async {
-                await Share.share(_textoPadrao);
+                await SharePlus.instance.share(
+                  ShareParams(text: _textoPadrao),
+                );
               },
             ),
             const SizedBox(height: 10),
@@ -230,7 +234,12 @@ class CompartilharResultadoScreen extends StatelessWidget {
               icone: Icons.message_outlined,
               label: 'Enviar por WhatsApp / Telegram',
               cor: Colors.green.shade700,
-              onTap: () => Share.share(_textoPadrao),
+
+              onTap: () async {
+                await SharePlus.instance.share(
+                  ShareParams(text: _textoPadrao),
+                );
+              },
             ),
           ],
         ),

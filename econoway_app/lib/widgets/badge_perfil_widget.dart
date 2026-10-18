@@ -23,7 +23,10 @@ class BadgePerfilWidget extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.85)],
+          colors: [
+            AppColors.primary,
+            AppColors.primary.withValues(alpha: 0.85),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -132,7 +135,7 @@ class BadgePerfilWidget extends StatelessWidget {
                 ),
               ),
               Text(
-                '${totalScans} notas',
+                '$totalScans notas',
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,

@@ -99,8 +99,10 @@ class _AdminMercadoCadastroScreenState
 
     try {
       final response = await http.get(
+        
         Uri.parse('https://viacep.com.br/ws/$cep/json/'),
       );
+      if (!mounted) return;
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['erro'] == null) {
@@ -111,6 +113,7 @@ class _AdminMercadoCadastroScreenState
             _estadoCtrl.text = data['uf'] ?? '';
           });
           ScaffoldMessenger.of(context).showSnackBar(
+            
             const SnackBar(
               content: Text('Endereço preenchido automaticamente!'),
             ),
@@ -125,7 +128,8 @@ class _AdminMercadoCadastroScreenState
     TimeOfDay atual,
     void Function(TimeOfDay) onSelecionado,
   ) async {
-    final picked = await showTimePicker(
+      final picked = await showTimePicker(
+      
       context: context,
       initialTime: atual,
       helpText: label,
@@ -147,6 +151,7 @@ class _AdminMercadoCadastroScreenState
     setState(() => _salvando = true);
 
     final token = await AuthService.getToken();
+    if (!mounted) return;
     final body = jsonEncode({
       'cnpj': _cnpjCtrl.text,
       'nome_fantasia': _nomeCtrl.text,
@@ -445,9 +450,11 @@ class _AdminMercadoCadastroScreenState
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.secondary.withValues(alpha:0.1),
+              color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.secondary.withValues(alpha:0.3)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.3),
+              ),
             ),
             child: const Row(
               children: [

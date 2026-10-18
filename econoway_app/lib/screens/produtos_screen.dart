@@ -37,12 +37,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
     try {
       final resultado = await controller.buscarProduto('');
 
-      if (resultado.isNotEmpty) {
-        print(
-          'Exemplo: ${resultado.first.nomeProduto} | cat: ${resultado.first.categoria}',
-        );
-      }
-
       if (!mounted) return;
       setState(() {
         produtos = resultado;
@@ -102,10 +96,13 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
       final categoriaOk =
           categoriaSelecionada == 'Todos' ||
           p.categoria == categoriaSelecionada;
-      final buscaOk =
+          final marcaStr = p.marca;
+          final buscaOk = 
           textoBusca.isEmpty ||
           p.nomeProduto.toLowerCase().contains(textoBusca.toLowerCase()) ||
-          (p.marca ?? '').toLowerCase().contains(textoBusca.toLowerCase());
+          marcaStr.toLowerCase().contains(textoBusca.toLowerCase());
+
+
       return categoriaOk && buscaOk;
     }).toList();
     return Scaffold(
@@ -143,8 +140,11 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                           if (!mounted) return;
 
                           setState(() {});
+                         
                         },
+                        
                       ),
+                      
                       if (carrinho.quantidadeTotal > 0)
                         Positioned(
                           right: 4,
@@ -241,7 +241,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
 
                           return ProdutoCard(
                             nome: produto.nomeProduto,
-                            marca: produto.marca ?? '',
+                            marca: produto.marca,
                             peso: produto.peso.toString(),
                             preco: produto.preco,
                             quantidade: qtd,
