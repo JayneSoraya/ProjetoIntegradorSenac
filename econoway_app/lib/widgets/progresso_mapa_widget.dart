@@ -4,13 +4,11 @@ import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/scan_nota_screen.dart';
-//import '../helpers/nivel_helper.dart';
+import '../config/api_config.dart';
 
 class ProgressoMapaWidget extends StatefulWidget {
-  /// Se true, recarrega os dados automaticamente ao montar
   final bool autoCarregar;
 
-  /// Callback chamado quando o usuário toca no widget
   final VoidCallback? onTap;
 
   const ProgressoMapaWidget({super.key, this.autoCarregar = true, this.onTap});
@@ -49,7 +47,7 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
       final token = await AuthService.getToken();
       final response = await http
           .get(
-            Uri.parse('http://192.168.1.11:3333/api/progresso'),
+            Uri.parse('${ApiConfig.baseUrl}/progresso'),
             headers: {'Authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 8));

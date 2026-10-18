@@ -13,6 +13,11 @@ declare global {
   }
 }
 
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  throw new Error('FATAL: JWT_SECRET não configurado.');
+}
+
 export const autenticar = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
@@ -25,9 +30,9 @@ export const autenticar = (req: Request, res: Response, next: NextFunction) => {
   try {
     const payload = jwt.verify(
       token,
-      process.env.JWT_SECRET || 'dev_secret'
+      jwtSecret
     ) as { 
-      id_conta: number; id_usuario:number; tipo_conta?: string
+      id_conta: number; id_usuario: number; tipo_conta?: string
     };
 
     req.usuario = payload;
@@ -38,7 +43,8 @@ export const autenticar = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export const apenasAdmin = (req: Request, res: Response, next: NextFunction) => {
-  if (req.usuario?.tipo_conta !== 'ADMIN')
+  if (req.usuario?.tipo_conta !== 'ADMIN') {
     return res.status(403).json({ erro: 'Acesso restrito a administradores.' });
+  }
   next();
-}
+};

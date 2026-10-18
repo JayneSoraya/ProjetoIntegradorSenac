@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../config/api_config.dart';
 
 class AdminMercadoCadastroScreen extends StatefulWidget {
   final Map<String, dynamic>? mercado; // null = novo, preenchido = editar
@@ -15,7 +16,7 @@ class AdminMercadoCadastroScreen extends StatefulWidget {
 
 class _AdminMercadoCadastroScreenState
     extends State<AdminMercadoCadastroScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/admin';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/admin';
 
   final _formKey = GlobalKey<FormState>();
   bool _salvando = false;

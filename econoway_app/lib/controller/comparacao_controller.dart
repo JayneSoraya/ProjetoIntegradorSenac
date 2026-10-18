@@ -1,12 +1,11 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../controller/carrinho_controller.dart';
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class ComparacaoController {
-  final String baseUrl = 'http://192.168.1.11:3333/api';
+  final String baseUrl = ApiConfig.baseUrl;
 
   Future<List<dynamic>> comparar() async {
     try {

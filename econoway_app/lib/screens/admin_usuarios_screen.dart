@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../config/api_config.dart';
 
 class AdminUsuariosScreen extends StatefulWidget {
   const AdminUsuariosScreen({super.key});
@@ -12,7 +13,7 @@ class AdminUsuariosScreen extends StatefulWidget {
 }
 
 class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/admin';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/admin';
 
   List<Map<String, dynamic>> _usuarios = [];
   bool _carregando = true;

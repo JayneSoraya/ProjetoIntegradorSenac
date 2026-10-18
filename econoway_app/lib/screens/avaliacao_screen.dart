@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 class AvaliacaoScreen extends StatefulWidget {
   final String nomeMercado;
 

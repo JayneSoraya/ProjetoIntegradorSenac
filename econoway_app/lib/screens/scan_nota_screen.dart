@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../config/api_config.dart';
 
 class ScanNotaScreen extends StatefulWidget {
   const ScanNotaScreen({super.key});
@@ -39,7 +40,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
       final token = await AuthService.getToken();
       final response = await http
           .post(
-            Uri.parse('http://192.168.1.11:3333/api/notas/processar'),
+            Uri.parse('${ApiConfig.baseUrl}/notas/processar'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

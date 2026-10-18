@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class ResumoUsuario {
   final double economiaMes;
@@ -44,7 +45,7 @@ class ResumoUsuario {
 }
 
 class EconomiaService {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/economia';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/economia';
 
   static Future<ResumoUsuario> buscarResumo() async {
     final token = await AuthService.getToken();

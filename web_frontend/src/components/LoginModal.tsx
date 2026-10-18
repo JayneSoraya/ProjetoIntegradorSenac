@@ -36,8 +36,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
           password: formData.password
         });
         setMessage('Login realizado com sucesso!');
-        localStorage.setItem('@EconoWay:token', response.data.token);
-        localStorage.setItem('@EconoWay:usuario', JSON.stringify(response.data.usuario));
+        sessionStorage.setItem('@EconoWay:token', response.data.token);
+        sessionStorage.setItem('@EconoWay:usuario', JSON.stringify(response.data.usuario));
         
         setTimeout(() => {
           window.location.href = '/dashboard'; 

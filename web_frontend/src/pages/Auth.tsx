@@ -88,8 +88,8 @@ export function Auth() {
         throw new Error(dados.erro || 'E-mail ou senha incorretos.');
       }
 
-      localStorage.setItem('@EconoWay:token', dados.token);
-      localStorage.setItem('@EconoWay:usuario', JSON.stringify(dados.usuario));
+      sessionStorage.setItem('@EconoWay:token', dados.token);
+      sessionStorage.setItem('@EconoWay:usuario', JSON.stringify(dados.usuario));
       
       navigate('/dashboard');
 

@@ -1,11 +1,15 @@
 import { Request, Response } from 'express';
-import bcrypt from 'bcrypt';
-import { pool } from '../database';
+import { UsuarioService } from '../services/usuarioService';
+import { logger } from '../utils/logger';
 import jwt from 'jsonwebtoken';
 
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  throw new Error('FATAL: JWT_SECRET não configurado.');
+}
 
 export const cadastrarUsuario = async (req: Request, res: Response) => {
-  const { nome, email, senha, tipo_conta } = req.body;
+  const { nome, email, senha } = req.body;
 
   if (!nome || !email || !senha) {
     return res.status(400).json({
@@ -13,41 +17,8 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
     });
   }
 
-  const client = await pool.connect();
-
   try {
-    await client.query('BEGIN');
-
-    const contaExistente = await client.query(
-      'SELECT id_conta FROM conta WHERE email = $1',
-      [email]
-    );
-
-    if (contaExistente.rows.length > 0) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({
-        erro: 'Este e-mail já está cadastrado.',
-      });
-    }
-
-    const senhaCriptografada = await bcrypt.hash(senha, 10);
-
-    const resultConta = await client.query(
-      `INSERT INTO conta (tipo_conta, email, senha, nome)
-       VALUES ('USER', $1, $2, $3)
-       RETURNING id_conta`,
-      [email, senhaCriptografada, nome]
-    );
-
-    const idConta = resultConta.rows[0].id_conta;
-
-    await client.query(
-      `INSERT INTO usuario (id_conta)
-       VALUES ($1)`,
-      [idConta]
-    );
-
-    await client.query('COMMIT');
+    await UsuarioService.cadastrar({ nome, email, senha });
 
     return res.status(201).json({
       status: 'sucesso',
@@ -55,16 +26,15 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
     });
 
   } catch (erro: any) {
-    await client.query('ROLLBACK');
+    logger.error('❌ ERRO CADASTRO:', { erro: erro.message });
 
-    console.error('❌ ERRO CADASTRO:', erro);
+    if (erro.message === 'Este e-mail já está cadastrado.') {
+      return res.status(409).json({ erro: erro.message });
+    }
 
     return res.status(500).json({
-      erro: erro.message,
+      erro: erro.message || 'Erro interno no cadastro',
     });
-
-  } finally {
-    client.release();
   }
 };
 
@@ -78,63 +48,44 @@ export const loginUsuario = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await pool.query(
-      `
-      SELECT
-        c.*,u.id_usuario
-      FROM conta c
-      LEFT JOIN usuario u
-      ON u.id_conta = c.id_conta
-      WHERE c.email = $1
-      `,
-      [email]
+    const usuario = await UsuarioService.autenticar(email, senha);
+
+    if (!usuario) {
+      return res.status(401).json({
+        erro: 'Usuário não encontrado ou senha inválida',
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id_conta: usuario.id_conta,
+        id_usuario: usuario.id_usuario,
+        tipo_conta: usuario.tipo_conta,
+      },
+      jwtSecret,
+      {
+        expiresIn: '7d',
+      }
     );
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        erro: 'Usuário não encontrado',
-      });
-    }
-
-    const usuario = result.rows[0];
-
-    const senhaValida = await bcrypt.compare(senha, usuario.senha);
-
-    if (!senhaValida) {
-      return res.status(401).json({
-        erro: 'Senha inválida',
-      });
-    }
-
-
-const token = jwt.sign(
-  {
-    id_conta: usuario.id_conta,
-    id_usuario: usuario.id_usuario,
-    tipo_conta:usuario.tipo_conta,
-  },
-  process.env.JWT_SECRET || 'dev_secret',
-  {
-    expiresIn: '7d',
-  }
-);
-
-
-return res.json({
-  status: 'sucesso',
-  usuario: {
-    id_conta: usuario.conta,
-    id_usuario: usuario.id_usuario,
-    nome:usuario.nome,
-    email: usuario.email,
-    tipo_conta: usuario.tipo_conta,
-  },
-  token,
-});
-
+    return res.json({
+      status: 'sucesso',
+      usuario: {
+        id_conta: usuario.id_conta,
+        id_usuario: usuario.id_usuario,
+        nome: usuario.nome,
+        email: usuario.email,
+        tipo_conta: usuario.tipo_conta,
+      },
+      token,
+    });
 
   } catch (erro: any) {
-    console.error('❌ ERRO LOGIN:', erro);
+    logger.error('❌ ERRO LOGIN:', { erro: erro.message });
+
+    if (erro.message === 'Senha inválida' || erro.message === 'Usuário não encontrado') {
+      return res.status(401).json({ erro: erro.message });
+    }
 
     return res.status(500).json({
       erro: 'Erro interno no login',

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'historico_preco_screen.dart';
+import '../config/api_config.dart';
 
 class HistoricoDetalheScreen extends StatefulWidget {
   final int idNota;
@@ -15,7 +16,7 @@ class HistoricoDetalheScreen extends StatefulWidget {
 }
 
 class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/historico';
 
   Map<String, dynamic>? _nota;
   List<Map<String, dynamic>> _itens = [];

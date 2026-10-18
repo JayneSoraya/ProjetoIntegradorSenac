@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../config/api_config.dart';
 
 class HistoricoPrecosScreen extends StatefulWidget {
   final int idProduto;
@@ -20,7 +21,7 @@ class HistoricoPrecosScreen extends StatefulWidget {
 }
 
 class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/historico';
 
   Map<String, dynamic>? _dados;
   bool _carregando = true;

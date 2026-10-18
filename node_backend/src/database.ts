@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -12,8 +13,8 @@ export const pool = new Pool({
 
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
-    console.error('❌ Erro ao conectar no banco de dados Neon:', err.stack);
+    logger.error('❌ Erro ao conectar no banco de dados Neon:', err.stack);
   } else {
-    console.log('✅ Conexão com o banco Neon estabelecida com sucesso em:', res.rows[0].now);
+    logger.info('✅ Conexão com o banco Neon estabelecida com sucesso em:', res.rows[0].now);
   }
 });

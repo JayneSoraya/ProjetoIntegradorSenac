@@ -1,27 +1,26 @@
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://192.168.1.11:3333/api/auth';
+  static const _secureStorage = FlutterSecureStorage();
   static const String _tokenKey = 'jwt_token';
   static const String _nomeKey = 'user_nome';
   static const String _tipoContaKey = 'tipo_conta';
 
   // 1. MANTER SESSÃO
   static Future<bool> isUserLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
+    final token = await _secureStorage.read(key: _tokenKey);
     return token != null && token.isNotEmpty;
   }
 
   // 2. LOGIN
-
   static Future<Map<String, dynamic>> login(String email, String senha) async {
     try {
       final response = await http
           .post(
-            Uri.parse('$baseUrl/login'),
+            Uri.parse('${ApiConfig.baseUrl}/login'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': email, 'senha': senha}),
           )
@@ -30,13 +29,14 @@ class AuthService {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_tokenKey, data['token']);
-
-        await prefs.setString(_nomeKey, data['usuario']['nome'] ?? 'Usuário');
-        await prefs.setString(
-          _tipoContaKey,
-          data['usuario']['tipo_conta'] ?? 'USER',
+        await _secureStorage.write(key: _tokenKey, value: data['token']);
+        await _secureStorage.write(
+          key: _nomeKey,
+          value: data['usuario']['nome'] ?? 'Usuário',
+        );
+        await _secureStorage.write(
+          key: _tipoContaKey,
+          value: data['usuario']['tipo_conta'] ?? 'USER',
         );
 
         return {'status': 'sucesso', 'usuario': data['usuario']};
@@ -52,8 +52,7 @@ class AuthService {
   }
 
   static Future<String> getTipoConta() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tipoContaKey) ?? 'USER';
+    return await _secureStorage.read(key: _tipoContaKey) ?? 'USER';
   }
 
   // 3. CADASTRAR
@@ -65,7 +64,7 @@ class AuthService {
     try {
       final response = await http
           .post(
-            Uri.parse('$baseUrl/cadastro'),
+            Uri.parse('${ApiConfig.baseUrl}/cadastro'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'nome': nome, 'email': email, 'senha': senha}),
           )
@@ -94,7 +93,7 @@ class AuthService {
     try {
       final response = await http
           .post(
-            Uri.parse('$baseUrl/recuperar-senha'),
+            Uri.parse('${ApiConfig.baseUrl}/recuperar-senha'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': email}),
           )
@@ -121,18 +120,16 @@ class AuthService {
 
   // 5. LOGOUT
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_nomeKey);
+    await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: _nomeKey);
+    await _secureStorage.delete(key: _tipoContaKey);
   }
 
   static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _secureStorage.read(key: _tokenKey);
   }
 
   static Future<String> getNome() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_nomeKey) ?? 'Usuário';
+    return await _secureStorage.read(key: _nomeKey) ?? 'Usuário';
   }
 }

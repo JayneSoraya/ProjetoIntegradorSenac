@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'historico_detalhe_screen.dart';
+import '../config/api_config.dart';
 
 class HistoricoComprasScreen extends StatefulWidget {
   const HistoricoComprasScreen({super.key});
@@ -14,7 +15,7 @@ class HistoricoComprasScreen extends StatefulWidget {
 }
 
 class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = '${ApiConfig.baseUrl}/historico';
 
   List<Map<String, dynamic>> _compras = [];
   bool _carregando = true;

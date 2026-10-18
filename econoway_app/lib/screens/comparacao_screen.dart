@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:econoway_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +7,7 @@ import '../services/auth_service.dart';
 import '../models/mercado_comparacao_dto.dart';
 import 'avaliacao_screen.dart';
 import 'carrinho_vazio_screen.dart';
+import '../config/api_config.dart';
 
 class ComparacaoScreen extends StatefulWidget {
   const ComparacaoScreen({super.key});
@@ -54,7 +54,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       final token = await AuthService.getToken();
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.11:3333/api/comparacao'),
+        Uri.parse('${ApiConfig.baseUrl}/comparacao'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

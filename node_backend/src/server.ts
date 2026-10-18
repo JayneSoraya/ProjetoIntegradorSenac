@@ -27,11 +27,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/historico', historicoRoutes);
 app.use('/api/supermercados',supermercadoRoutes);
 app.use('/api/progresso', progressoRoutes);
+import { logger } from './utils/logger';
 
 
 // ROTA DE TESTE 
 app.get('/api/status', (req, res) => {
-  console.log("📱 Celular conectou na API ");
+  logger.info("📱 Celular conectou na API ");
   res.json({ 
     status: "online", 
     mensagem: "API SaveMoneyfuncionando!" 
@@ -44,5 +45,5 @@ app.use('/api/supermercados', supermercadoRoutes);
 app.use('/api/produtos', produtoRoutes);
 // INICIAR SERVIDOR (aceita celular)
 app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 SaveMoney API rodando na porta ${PORT}`);
+  logger.info(`🚀 SaveMoney API rodando na porta ${PORT}`);
 });

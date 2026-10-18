@@ -3,9 +3,10 @@ import 'package:http/http.dart' as http;
 import '../interfaces/produto_repository.dart';
 import '../models/produto_dto.dart' hide IProdutoRepository;
 import '../services/auth_service.dart';
+import '../config/api_config.dart';
 
 class ProdutoRepository implements IProdutoRepository {
-  final String baseUrl = 'http://192.168.1.11:3333/api';
+  final String baseUrl = ApiConfig.baseUrl;
 
   Future<Map<String, String>> get _headers async {
     final token = await AuthService.getToken();
