@@ -33,13 +33,14 @@ O banco Neon, o deploy HTTPS, o monitoramento e os backups de produção ainda p
 
 ## Estrutura
 <!--START_LANGS-->
-🛠️ **Linguagens e Base**:  
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/dart/dart-original.svg" width="24" height="24" /> **Dart (42.8%)** — Core do Aplicativo Mobile Flutter.
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" width="24" height="24" /> **TypeScript (23.8%)** — Lógica do Backend e API Node.js.
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg" width="24" height="24" /> **C++ (23.1%)** — Integração nativa do motor do Flutter.
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cmake/cmake-original.svg" width="24" height="24" /> **CMake (4.5%)** — Gerenciamento de compilação nativa.
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg" width="24" height="24" /> **CSS (3.5%)** — Estilização web.
-- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg" width="24" height="24" /> **HTML (1.7%)** — Estruturação de páginas.
+🛠️ **Linguagens e Base**:
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/dart/dart-original.svg" width="24" height="24" /> **Dart (41.8%)** — Core do Aplicativo Mobile Flutter.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" width="24" height="24" /> **TypeScript (23.9%)** — Lógica do Backend e API Node.js.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg" width="24" height="24" /> **HTML (23.4%)** — Estruturação de páginas.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg" width="24" height="24" /> **C++ (4.5%)** — Integração nativa do motor do Flutter.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cmake/cmake-original.svg" width="24" height="24" /> **CMake (3.4%)** — Gerenciamento de compilação nativa.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg" width="24" height="24" /> **Python (1.1%)** — Código fonte do projeto.
+- <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg" width="24" height="24" /> **CSS (0.6%)** — Estilização web.
 <!--END_LANGS-->
 
 📱 **Mobile (Aplicativo):**  
