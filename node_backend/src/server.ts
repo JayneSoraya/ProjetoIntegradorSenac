@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import './database';
 import notaRoutes from './routes/notaRoutes';
 import adminRoutes from './routes/adminRoutes';
@@ -18,9 +19,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3333;
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Limite de 100 requisições por IP
+  message: 'Muitas requisições feitas a partir deste IP, por favor tente novamente mais tarde.',
+});
+
 //  Middlewares
 app.use(cors());
 app.use(express.json());
+app.use(limiter);
 app.use('/api/notas', notaRoutes);
 app.use('/api/comparacao', comparacaoRoutes);
 app.use('/api/admin', adminRoutes);
