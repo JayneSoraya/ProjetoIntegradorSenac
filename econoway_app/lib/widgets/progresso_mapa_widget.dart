@@ -101,7 +101,7 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
       return Container(
         height: 90,
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.05),
+          color: AppColors.primary.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Center(
@@ -120,10 +120,10 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
+        color: AppColors.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: AppColors.primary.withOpacity(0.2),
+          color: AppColors.primary.withValues(alpha: 0.2),
           width: 1.5,
         ),
       ),
@@ -136,7 +136,7 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.15),
+                  color: AppColors.secondary.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(

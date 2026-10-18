@@ -235,7 +235,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: cor.withOpacity(0.1),
+                                  color: cor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(

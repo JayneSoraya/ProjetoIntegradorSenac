@@ -7,15 +7,15 @@ const router = Router();
 const supermercadoController =
     new SupermercadoController();
 
-router.post('/', supermercadoController.criar);
+router.post('/', SupermercadoController.criar);
 
-router.get('/', supermercadoController.listar);
+router.get('/', SupermercadoController.listar);
 
 router.get(
   '/meu-perfil',
   autenticar,
-  supermercadoController.meuPerfil.bind(
-    supermercadoController
+  SupermercadoController.meuPerfil.bind(
+    SupermercadoController
   )
 );
 

@@ -156,7 +156,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
                               CircleAvatar(
                                 backgroundColor: bloqueado
                                     ? Colors.red.shade100
-                                    : AppColors.primary.withOpacity(0.1),
+                                    : AppColors.primary.withValues(alpha: 0.1),
                                 child: Text(
                                   (u['nome'] as String? ?? 'U')
                                       .substring(0, 1)

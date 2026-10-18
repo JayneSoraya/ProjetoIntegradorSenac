@@ -52,7 +52,7 @@ class CompartilharResultadoScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -102,7 +102,7 @@ class CompartilharResultadoScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -170,9 +170,9 @@ class CompartilharResultadoScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.08),
+                color: AppColors.secondary.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+                border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
               ),
               child: const Text(
                 '"Moradores de Araraquara já economizaram R\$ 1.240 '
@@ -292,9 +292,9 @@ class CompartilharResultadoScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: cor.withOpacity(0.08),
+          color: cor.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: cor.withOpacity(0.3)),
+          border: Border.all(color: cor.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -305,7 +305,7 @@ class CompartilharResultadoScreen extends StatelessWidget {
               style: TextStyle(color: cor, fontWeight: FontWeight.w600),
             ),
             const Spacer(),
-            Icon(Icons.chevron_right, color: cor.withOpacity(0.5)),
+            Icon(Icons.chevron_right, color: cor.withValues(alpha: 0.5)),
           ],
         ),
       ),

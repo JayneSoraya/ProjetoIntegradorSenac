@@ -4,9 +4,9 @@ import { UsuarioService } from '../services/usuarioService';
 const usuarioService = new UsuarioService();
 
 export class UsuarioController {
-  async registrar(req: Request, res: Response): Promise<void> {
+ static async registrar(req: Request, res: Response): Promise<void> {
     try {
-      const resultado = await usuarioService.cadastrar(req.body);
+     const resultado = await UsuarioService.cadastrar(req.body);
       res.status(201).json({
         mensagem: 'Usuário registrado com sucesso! 🚀',
         dados: resultado
