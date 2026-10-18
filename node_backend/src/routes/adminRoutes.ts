@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { autenticar, apenasAdmin } from '../middleware/authMiddleware';
 import {
   listarMercados,
@@ -12,6 +13,13 @@ import {
 } from '../controllers/adminController';
 
 const router = Router();
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 5,
+  message: 'Muitas requisições feitas a partir deste IP, por favor tente novamente mais tarde.',
+});
+
+router.use(adminLimiter);
 
 // Todas as rotas admin exigem autenticação + ser ADMIN
 router.use(autenticar, apenasAdmin);
