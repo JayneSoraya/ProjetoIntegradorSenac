@@ -11,6 +11,9 @@ export const buscarProgresso = async (req: Request, res: Response) => {
   const { id_usuario } = req.usuario;
 
   try {
+    if (!id_usuario) {
+  return res.status(400).json({ erro: 'ID do usuário não encontrado na sessão.' });
+}
     const dadosProgresso = await ProgressoService.buscarProgressoZeigarnik(id_usuario);
     return res.status(200).json(dadosProgresso);
   } catch (erro: any) {

@@ -2,6 +2,23 @@ import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 
+declare global {
+  namespace Express {
+    interface Request {
+      auth?: {
+        accountId: number;
+        userId: number | null;
+        role: 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
+      };
+      usuario?: {
+        id_conta: number;
+        id_usuario?: number | null;
+        tipo_conta: 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
+      };
+    }
+  }
+}
+
 function readCookie(header: string | undefined, name: string): string {
   if (!header) return '';
   for (const part of header.split(';')) {
@@ -55,6 +72,11 @@ export function autenticar(req: Request, res: Response, next: NextFunction) {
       userId: Number.isInteger(payload.id_usuario) ? payload.id_usuario! : null,
       role: payload.tipo_conta,
     };
+    req.usuario = {
+      id_conta: payload.id_conta!,
+      id_usuario: payload.id_usuario ?? null,
+      tipo_conta: payload.tipo_conta,
+    };
 
     return next();
   } catch {
@@ -75,3 +97,5 @@ export function autorizar(...roles: Array<'USUARIO' | 'SUPERMERCADO' | 'ADMIN'>)
     return next();
   };
 }
+
+export const apenasAdmin = autorizar('ADMIN');
