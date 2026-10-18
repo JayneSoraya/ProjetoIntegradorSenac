@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import SpaceBackground from '../components/SpaceBackground';
 import Header from '../components/Header';
 import Hero from '../components/Hero';
