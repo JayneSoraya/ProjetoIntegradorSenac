@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../config/api_config.dart';
 
-
 class AdminMercadosScreen extends StatefulWidget {
   const AdminMercadosScreen({super.key});
 
@@ -187,7 +186,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
     if (confirmar != true) return;
 
     // Abre seletor de arquivo
-    
+
     final resultado = await fp.FilePicker.pickFiles(
       type: fp.FileType.custom,
       allowedExtensions: ['csv', 'txt'],

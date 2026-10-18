@@ -59,8 +59,9 @@ export function Auth() {
       setSenha('');
       setTelaAtual('login'); 
 
-    } catch (err: any) {
-      setErro(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido.';
+      setErro(errorMessage);
     } finally {
       setCarregando(false);
     }
@@ -93,8 +94,9 @@ export function Auth() {
       
       navigate('/dashboard');
 
-    } catch (err: any) {
-      setErro(err.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido.';
+      setErro(errorMessage);
     } finally {
       setCarregando(false);
     }

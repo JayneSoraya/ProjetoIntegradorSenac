@@ -20,7 +20,6 @@ class ViaCepService {
       }
       return data;
     }
-    
 
     return null;
   }

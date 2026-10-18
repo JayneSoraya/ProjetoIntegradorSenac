@@ -99,8 +99,7 @@ class _AdminMercadoCadastroScreenState
 
     try {
       final response = await http.get(
-        Uri.parse('https://viacep.com.br/ws/$cep/json/',
-        ),
+        Uri.parse('https://viacep.com.br/ws/$cep/json/'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
