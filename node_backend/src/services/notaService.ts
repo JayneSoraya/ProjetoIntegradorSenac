@@ -105,10 +105,27 @@ export class NotaService {
       throw new Error('Domínio da SEFAZ não autorizado ou estado inválido.');
     }
 
-    const safeTargetUrl = `https://${baseHost}${parsedUrl.pathname}${parsedUrl.search}`;
+    if (!/^\/[a-zA-Z0-9_\-\/\.]+$/.test(parsedUrl.pathname)) {
+      throw new Error('Caminho da URL da SEFAZ inválido ou malformado.');
+    }
+
+    const paramP = parsedUrl.searchParams.get('p');
+    const paramChNFe = parsedUrl.searchParams.get('chNFe');
+
+    let safeQuery = '';
+    if (paramP) {
+      safeQuery = `?p=${encodeURIComponent(paramP)}`;
+    } else if (paramChNFe) {
+      safeQuery = `?chNFe=${encodeURIComponent(paramChNFe)}`;
+    } else {
+      // Se houver outros parâmetros necessários, trate-os aqui ou valide o searchParams geral
+      safeQuery = `?${parsedUrl.searchParams.toString()}`;
+    }
+
+    const safeTargetUrl = `https://${baseHost}${parsedUrl.pathname}${safeQuery}`;
     
   // 1. Busca HTML da SEFAZ SP seguindo redirect
-    const resposta = await axios.get(safeTargetUrl.toString(), {
+    const resposta = await axios.get(safeTargetUrl, {
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
