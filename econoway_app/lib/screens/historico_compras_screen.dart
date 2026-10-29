@@ -14,7 +14,7 @@ class HistoricoComprasScreen extends StatefulWidget {
 }
 
 class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = 'http://localhost:3333/api/historico';
 
   List<Map<String, dynamic>> _compras = [];
   bool _carregando = true;
@@ -156,7 +156,7 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
                                       color:
-                                          AppColors.primary.withOpacity(0.1),
+                                          AppColors.primary.withValues(alpha: 0.1),
                                       borderRadius:
                                           BorderRadius.circular(12),
                                     ),

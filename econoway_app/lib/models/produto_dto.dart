@@ -2,7 +2,7 @@ class ProdutoDTO {
   final int idProduto;
   final String codigoBarras;
   final String nomeProduto;
-  final String marca;
+  final String? marca;
   final String categoria;
   final double preco;
   final double peso;

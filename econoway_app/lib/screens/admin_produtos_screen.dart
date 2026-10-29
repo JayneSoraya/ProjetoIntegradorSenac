@@ -12,7 +12,7 @@ class AdminProdutosScreen extends StatefulWidget {
 }
 
 class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/admin';
+  static const String _baseUrl = 'http://localhost:3333/api/admin';
 
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
@@ -234,7 +234,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: cor.withOpacity(0.1),
+                                  color: cor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(

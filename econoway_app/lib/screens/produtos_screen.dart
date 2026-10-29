@@ -37,12 +37,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
     try {
       final resultado = await controller.buscarProduto('');
 
-      if (resultado.isNotEmpty) {
-        print(
-          'Exemplo: ${resultado.first.nomeProduto} | cat: ${resultado.first.categoria}',
-        );
-      }
-
       if (!mounted) return;
       setState(() {
         produtos = resultado;

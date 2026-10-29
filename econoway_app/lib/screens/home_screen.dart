@@ -8,7 +8,6 @@ import 'carrinho_screen.dart';
 import 'carrinho_vazio_screen.dart';
 import 'welcome_screen.dart';
 import 'produtos_screen.dart';
-import 'scan_nota_screen.dart';
 import 'admin_screen.dart';
 import 'mercado_home_screen.dart';
 import '../widgets/progresso_mapa_widget.dart';
@@ -142,10 +141,10 @@ class _HomeScreenState extends State<HomeScreen>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: AppColors.primary.withOpacity(0.2),
+                                color: AppColors.primary.withValues(alpha: 0.2),
                               ),
                             ),
                             child: Row(
@@ -229,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen>
                           onPressed: () async {
                             await AuthService.logout();
                             if (!mounted) return;
+                            final currentContext = context;
+                            if (!currentContext.mounted) return;
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -251,7 +252,7 @@ class _HomeScreenState extends State<HomeScreen>
                     width: double.infinity,
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Center(
@@ -278,10 +279,10 @@ class _HomeScreenState extends State<HomeScreen>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
+                      color: AppColors.primary.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -395,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 6),
           ),
@@ -416,7 +417,7 @@ class _HomeScreenState extends State<HomeScreen>
           const SizedBox(height: 8),
           AnimatedBuilder(
             animation: _economiaAnim,
-            builder: (_, __) => Text(
+            builder: (_, _) => Text(
               'R\$ ${_economiaAnim.value.toStringAsFixed(2)}',
               style: const TextStyle(
                 color: Colors.white,
@@ -479,9 +480,11 @@ class _HomeScreenState extends State<HomeScreen>
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: AppColors.secondary.withOpacity(0.1),
+              color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.2),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,9 +516,11 @@ class _HomeScreenState extends State<HomeScreen>
           child: Container(
             padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.06),
+              color: AppColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.15),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -570,13 +575,13 @@ class _HomeScreenState extends State<HomeScreen>
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
           color: destaque
-              ? AppColors.secondary.withOpacity(0.1)
+              ? AppColors.secondary.withValues(alpha: 0.1)
               : Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
             color: destaque
-                ? AppColors.secondary.withOpacity(0.3)
-                : AppColors.secondary.withOpacity(0.1),
+                ? AppColors.secondary.withValues(alpha: 0.3)
+                : AppColors.secondary.withValues(alpha: 0.1),
           ),
         ),
         child: Column(

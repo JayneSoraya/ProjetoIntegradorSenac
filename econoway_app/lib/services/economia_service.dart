@@ -44,7 +44,7 @@ class ResumoUsuario {
 }
 
 class EconomiaService {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/economia';
+  static const String _baseUrl = 'http://localhost:3333/api/economia';
 
   static Future<ResumoUsuario> buscarResumo() async {
     final token = await AuthService.getToken();

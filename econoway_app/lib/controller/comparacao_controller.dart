@@ -6,7 +6,7 @@ import '../controller/carrinho_controller.dart';
 import '../services/auth_service.dart';
 
 class ComparacaoController {
-  final String baseUrl = 'http://192.168.1.11:3333/api';
+  final String baseUrl = 'http://localhost:3333/api';
 
   Future<List<dynamic>> comparar() async {
     try {

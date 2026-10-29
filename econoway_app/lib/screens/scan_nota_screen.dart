@@ -39,7 +39,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
       final token = await AuthService.getToken();
       final response = await http
           .post(
-            Uri.parse('http://192.168.1.11:3333/api/notas/processar'),
+            Uri.parse('http://localhost:3333/api/notas/processar'),
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

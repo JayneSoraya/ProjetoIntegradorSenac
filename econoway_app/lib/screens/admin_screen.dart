@@ -116,12 +116,12 @@ class AdminScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: desabilitado
               ? Colors.grey.shade100
-              : AppColors.primary.withOpacity(0.06),
+              : AppColors.primary.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: desabilitado
                 ? Colors.grey.shade200
-                : AppColors.primary.withOpacity(0.2),
+                : AppColors.primary.withValues(alpha: 0.2),
           ),
         ),
         child: Column(

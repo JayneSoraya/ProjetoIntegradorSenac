@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const supermercadoController_1 = require("../controllers/supermercadoController");
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const router = (0, express_1.Router)();
+const supermercadoController = new supermercadoController_1.SupermercadoController();
+router.post('/', supermercadoController_1.SupermercadoController.criar);
+router.get('/', supermercadoController_1.SupermercadoController.listar);
+router.get('/meu-perfil', authMiddleware_1.autenticar, supermercadoController_1.SupermercadoController.meuPerfil.bind(supermercadoController_1.SupermercadoController));
+exports.default = router;

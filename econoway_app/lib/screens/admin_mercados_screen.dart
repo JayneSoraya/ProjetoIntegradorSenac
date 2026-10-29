@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
 
-
 class AdminMercadosScreen extends StatefulWidget {
   const AdminMercadosScreen({super.key});
 
@@ -16,7 +15,7 @@ class AdminMercadosScreen extends StatefulWidget {
 }
 
 class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/admin';
+  static const String _baseUrl = 'http://localhost:3333/api/admin';
 
   List<Map<String, dynamic>> _mercados = [];
   bool _carregando = true;
@@ -419,7 +418,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
                     leading: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.store, color: AppColors.primary),

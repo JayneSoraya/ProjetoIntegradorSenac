@@ -15,7 +15,7 @@ class HistoricoDetalheScreen extends StatefulWidget {
 }
 
 class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = 'http://localhost:3333/api/historico';
 
   Map<String, dynamic>? _nota;
   List<Map<String, dynamic>> _itens = [];
@@ -74,7 +74,7 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
-                  color: AppColors.primary.withOpacity(0.06),
+                  color: AppColors.primary.withValues(alpha: 0.06),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -168,7 +168,7 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.04),
+                                      color: Colors.black.withValues(alpha: 0.04),
                                       blurRadius: 6,
                                     ),
                                   ],

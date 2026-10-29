@@ -48,7 +48,7 @@ class _SplashAuthState extends State<SplashAuth> {
 
     if (loggedIn) {
       final nome = await AuthService.getNome();
-
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => HomeScreen(nomeUsuario: nome)),

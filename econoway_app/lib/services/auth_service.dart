@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://192.168.1.11:3333/api/auth';
+  static const String baseUrl = 'http://localhost:3333/api/auth';
   static const String _tokenKey = 'jwt_token';
   static const String _nomeKey = 'user_nome';
   static const String _tipoContaKey = 'tipo_conta';

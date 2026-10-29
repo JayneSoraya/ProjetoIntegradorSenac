@@ -12,7 +12,7 @@ class AdminUsuariosScreen extends StatefulWidget {
 }
 
 class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/admin';
+  static const String _baseUrl = 'http://localhost:3333/api/admin';
 
   List<Map<String, dynamic>> _usuarios = [];
   bool _carregando = true;
@@ -155,7 +155,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
                               CircleAvatar(
                                 backgroundColor: bloqueado
                                     ? Colors.red.shade100
-                                    : AppColors.primary.withOpacity(0.1),
+                                    : AppColors.primary.withValues(alpha: 0.1),
                                 child: Text(
                                   (u['nome'] as String? ?? 'U')
                                       .substring(0, 1)

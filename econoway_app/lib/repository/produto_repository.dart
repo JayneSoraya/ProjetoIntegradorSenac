@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../core/config/app_config.dart';
 import '../interfaces/produto_repository.dart';
 import '../models/produto_dto.dart' hide IProdutoRepository;
 import '../services/auth_service.dart';
 
 class ProdutoRepository implements IProdutoRepository {
-  final String baseUrl = 'http://192.168.1.11:3333/api';
-
   Future<Map<String, String>> get _headers async {
     final token = await AuthService.getToken();
     return {
@@ -28,11 +27,11 @@ class ProdutoRepository implements IProdutoRepository {
         params['categoria'] = categoria;
       }
 
-      final uri = Uri.parse(
-        '$baseUrl/produtos',
+      final uri = AppConfig.endpoint(
+        'produtos',
       ).replace(queryParameters: params);
-
       final response = await http.get(uri, headers: await _headers);
+
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         return data.map((json) => ProdutoDTO.fromJson(json)).toList();
@@ -48,8 +47,9 @@ class ProdutoRepository implements IProdutoRepository {
   @override
   Future<ProdutoDTO> buscarDetalhe(int id) async {
     try {
+      final uri = AppConfig.endpoint('produtos/$id');
       final response = await http.get(
-        Uri.parse('$baseUrl/produtos/$id'),
+        uri,
         headers: await _headers, // fix: token JWT no header
       );
 

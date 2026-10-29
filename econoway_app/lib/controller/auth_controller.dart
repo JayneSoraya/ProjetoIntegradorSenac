@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/usuario_model.dart';
 
 class AuthController {
-  static const String _baseUrl = 'http://10.0.2.2:3333/api/auth';
+  static const String _baseUrl = 'http://localhost:3333/api/auth';
 
   static Future<Map<String, dynamic>> cadastrar(UsuarioModel usuario) async {
     final url = Uri.parse('$_baseUrl/cadastro');

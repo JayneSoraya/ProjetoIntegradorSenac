@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
+
 
 export class ComparacaoController {
 
@@ -145,11 +147,19 @@ export class ComparacaoController {
         return a.total - b.total;
       });
 
+       logger.info('Comparação de preços realizada com sucesso.', {
+        totalMercadosAvaliados: supermercados.rows.length,
+        totalItensCarrinho: itens.length,
+      });
+
       res.status(200).json(resultado);
 
     } catch (erro) {
 
-      console.error(erro);
+      logger.error('Erro crítico ao processar comparação de mercados.', {
+        error: erro instanceof Error ? erro.message : String(erro),
+        stack: erro instanceof Error ? erro.stack : undefined,
+      });
 
       res.status(500).json({
         erro: 'Erro ao comparar mercados.',

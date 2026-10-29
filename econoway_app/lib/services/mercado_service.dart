@@ -8,7 +8,7 @@ class MercadoService {
     final token = await AuthService.getToken();
 
     final response = await http.get(
-      Uri.parse('http://192.168.1.11:3333/mercado/meu-perfil'),
+      Uri.parse('http://localhost:3333/mercado/meu-perfil'),
       headers: {'Authorization': 'Bearer $token'},
     );
 

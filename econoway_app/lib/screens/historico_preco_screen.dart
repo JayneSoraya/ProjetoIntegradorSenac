@@ -20,7 +20,7 @@ class HistoricoPrecosScreen extends StatefulWidget {
 }
 
 class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
-  static const String _baseUrl = 'http://192.168.1.11:3333/api/historico';
+  static const String _baseUrl = 'http://localhost:3333/api/historico';
 
   Map<String, dynamic>? _dados;
   bool _carregando = true;
@@ -112,7 +112,7 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: maisBarato
-                              ? AppColors.secondary.withOpacity(0.08)
+                              ? AppColors.secondary.withValues(alpha: 0.08)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -196,7 +196,7 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.08),
+                              color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(

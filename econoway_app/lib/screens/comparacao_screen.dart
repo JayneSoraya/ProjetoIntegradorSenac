@@ -54,7 +54,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       final token = await AuthService.getToken();
 
       final response = await http.post(
-        Uri.parse('http://192.168.1.11:3333/api/comparacao'),
+        Uri.parse('http://localhost:3333/api/comparacao'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -241,15 +241,9 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                             ),
                         ],
                       ),
-                      trailing: Radio<int>(
-                        value: index,
-                        groupValue: mercadoSelecionadoIndex,
-                        activeColor: AppColors.secondary,
-                        onChanged: (value) {
-                          setState(() {
-                            mercadoSelecionadoIndex = value;
-                          });
-                        },
+                      trailing: Icon(
+                        selecionado ? Icons.radio_button_checked : Icons.radio_button_off,
+                        color: selecionado ? AppColors.secondary : Colors.grey,
                       ),
                     ),
                   );
