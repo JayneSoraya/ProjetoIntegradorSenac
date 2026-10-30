@@ -11,7 +11,6 @@ class CarrinhoController {
 
   List<CarrinhoItem> get itens => _itens;
 
-
   void adicionar(CarrinhoItem item) {
     final index = _itens.indexWhere((i) => i.idProduto == item.idProduto);
 

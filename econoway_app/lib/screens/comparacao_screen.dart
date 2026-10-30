@@ -242,7 +242,9 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                         ],
                       ),
                       trailing: Icon(
-                        selecionado ? Icons.radio_button_checked : Icons.radio_button_off,
+                        selecionado
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_off,
                         color: selecionado ? AppColors.secondary : Colors.grey,
                       ),
                     ),

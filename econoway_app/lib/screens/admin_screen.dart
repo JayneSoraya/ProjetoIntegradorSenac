@@ -62,27 +62,36 @@ class AdminScreen extends StatelessWidget {
                   icon: Icons.people_outline,
                   titulo: 'Usuários',
                   subtitulo: 'Ver e gerenciar contas',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminUsuariosScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminUsuariosScreen(),
+                    ),
+                  ),
                 ),
                 _buildAdminCard(
                   context,
                   icon: Icons.store_outlined,
                   titulo: 'Mercados',
                   subtitulo: 'RF21 — Cadastro',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminMercadosScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminMercadosScreen(),
+                    ),
+                  ),
                 ),
                 _buildAdminCard(
                   context,
                   icon: Icons.inventory_2_outlined,
                   titulo: 'Produtos',
                   subtitulo: 'Corrigir categorias',
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                          builder: (_) => const AdminProdutosScreen())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdminProdutosScreen(),
+                    ),
+                  ),
                 ),
                 _buildAdminCard(
                   context,

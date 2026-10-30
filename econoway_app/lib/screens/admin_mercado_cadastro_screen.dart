@@ -98,8 +98,7 @@ class _AdminMercadoCadastroScreenState
 
     try {
       final response = await http.get(
-        Uri.parse('https://viacep.com.br/ws/$cep/json/',
-        ),
+        Uri.parse('https://viacep.com.br/ws/$cep/json/'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -448,7 +447,9 @@ class _AdminMercadoCadastroScreenState
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.secondary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.secondary.withValues(alpha: 0.3),
+              ),
             ),
             child: const Row(
               children: [

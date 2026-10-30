@@ -125,7 +125,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 30),
 
-               
                 TextFormField(
                   controller: _nomeController,
                   decoration: _inputDecoration(
@@ -145,7 +144,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 16),
 
-                
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -180,7 +178,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 16),
 
-                
                 TextFormField(
                   controller: _confirmarSenhaController,
                   obscureText: true,

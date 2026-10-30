@@ -168,7 +168,9 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.04),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.04,
+                                      ),
                                       blurRadius: 6,
                                     ),
                                   ],

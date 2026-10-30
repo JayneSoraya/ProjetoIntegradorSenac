@@ -72,14 +72,14 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.nomeProduto,
-            style: const TextStyle(fontSize: 16)),
+        title: Text(widget.nomeProduto, style: const TextStyle(fontSize: 16)),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: _carregando
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -89,22 +89,27 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                   const Text(
                     'Preço atual por mercado',
                     style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppColors.primary),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 12),
 
                   if (precosAtuais.isEmpty)
-                    const Text('Nenhum preço cadastrado.',
-                        style: TextStyle(color: Colors.grey))
+                    const Text(
+                      'Nenhum preço cadastrado.',
+                      style: TextStyle(color: Colors.grey),
+                    )
                   else
                     ...precosAtuais.asMap().entries.map((entry) {
                       final i = entry.key;
                       final p = entry.value as Map<String, dynamic>;
                       final preco =
-                          double.tryParse(p['preco_atual']?.toString() ?? '0') ??
-                              0;
+                          double.tryParse(
+                            p['preco_atual']?.toString() ?? '0',
+                          ) ??
+                          0;
                       final maisBarato = i == 0;
 
                       return Container(
@@ -131,13 +136,16 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                                   Text(
                                     p['supermercado'] ?? '—',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   if (p['data_atualizacao'] != null)
                                     Text(
                                       'Atualizado: ${_formatarMes(p['data_atualizacao'])}',
                                       style: const TextStyle(
-                                          color: Colors.grey, fontSize: 11),
+                                        color: Colors.grey,
+                                        fontSize: 11,
+                                      ),
                                     ),
                                 ],
                               ),
@@ -146,16 +154,21 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                               Container(
                                 margin: const EdgeInsets.only(right: 8),
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.secondary,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Text('Mais barato',
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold)),
+                                child: const Text(
+                                  'Mais barato',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             Text(
                               'R\$ ${preco.toStringAsFixed(2)}',
@@ -178,9 +191,10 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                     const Text(
                       'Histórico de variações',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: AppColors.primary),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: 12),
 
@@ -194,15 +208,20 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                           // Header do mercado
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.store_outlined,
-                                    color: AppColors.primary, size: 16),
+                                const Icon(
+                                  Icons.store_outlined,
+                                  color: AppColors.primary,
+                                  size: 16,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   nomeMercado,
@@ -221,41 +240,46 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                             final idx = e.key;
                             final Map<String, dynamic> r = e.value;
                             final preco =
-                                double.tryParse(r['preco']?.toString() ?? '0') ??
-                                    0;
+                                double.tryParse(
+                                  r['preco']?.toString() ?? '0',
+                                ) ??
+                                0;
 
                             // Compara com o próximo (mais antigo)
                             double? precoAnterior;
                             if (idx + 1 < registros.length) {
                               precoAnterior = double.tryParse(
-                                  registros[idx + 1]['preco']?.toString() ??
-                                      '0');
+                                registros[idx + 1]['preco']?.toString() ?? '0',
+                              );
                             }
 
-                            final subiu = precoAnterior != null &&
-                                preco > precoAnterior;
-                            final desceu = precoAnterior != null &&
-                                preco < precoAnterior;
+                            final subiu =
+                                precoAnterior != null && preco > precoAnterior;
+                            final desceu =
+                                precoAnterior != null && preco < precoAnterior;
 
                             return Padding(
-                              padding:
-                                  const EdgeInsets.only(left: 12, bottom: 6),
+                              padding: const EdgeInsets.only(
+                                left: 12,
+                                bottom: 6,
+                              ),
                               child: Row(
                                 children: [
                                   // Linha do tempo
                                   Column(
                                     children: [
                                       Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: desceu
-                                                ? Colors.green
-                                                : subiu
-                                                    ? Colors.red
-                                                    : Colors.grey,
-                                          )),
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: desceu
+                                              ? Colors.green
+                                              : subiu
+                                              ? Colors.red
+                                              : Colors.grey,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(width: 12),
@@ -263,22 +287,31 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                                     child: Text(
                                       _formatarMes(r['registrado_em']),
                                       style: const TextStyle(
-                                          color: Colors.grey, fontSize: 13),
+                                        color: Colors.grey,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
                                   Text(
                                     'R\$ ${preco.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                   const SizedBox(width: 6),
                                   if (desceu)
-                                    const Icon(Icons.arrow_downward,
-                                        color: Colors.green, size: 16)
+                                    const Icon(
+                                      Icons.arrow_downward,
+                                      color: Colors.green,
+                                      size: 16,
+                                    )
                                   else if (subiu)
-                                    const Icon(Icons.arrow_upward,
-                                        color: Colors.red, size: 16)
+                                    const Icon(
+                                      Icons.arrow_upward,
+                                      color: Colors.red,
+                                      size: 16,
+                                    )
                                   else
                                     const SizedBox(width: 16),
                                 ],
@@ -294,9 +327,10 @@ class _HistoricoPrecosScreenState extends State<HistoricoPrecosScreen> {
                     const Text(
                       'Histórico de variações',
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: AppColors.primary),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: AppColors.primary,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(

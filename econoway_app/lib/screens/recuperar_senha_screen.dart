@@ -40,8 +40,9 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(resultado['mensagem'] ?? ''),
-        backgroundColor:
-            resultado['status'] == 'sucesso' ? AppColors.primary : Colors.redAccent,
+        backgroundColor: resultado['status'] == 'sucesso'
+            ? AppColors.primary
+            : Colors.redAccent,
       ),
     );
   }
@@ -81,10 +82,15 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
             decoration: InputDecoration(
               labelText: 'E-mail cadastrado',
               prefixIcon: const Icon(Icons.email_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 2,
+                ),
               ),
             ),
             validator: (v) {
@@ -127,7 +133,11 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.mark_email_read_outlined, size: 72, color: AppColors.secondary),
+        const Icon(
+          Icons.mark_email_read_outlined,
+          size: 72,
+          color: AppColors.secondary,
+        ),
         const SizedBox(height: 24),
         const Text(
           'Instruções enviadas!',
@@ -145,7 +155,9 @@ class _RecuperarSenhaScreenState extends State<RecuperarSenhaScreen> {
           onPressed: () => Navigator.pop(context),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: const Text('Voltar ao login'),
         ),
