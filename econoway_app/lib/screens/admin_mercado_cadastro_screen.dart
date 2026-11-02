@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 
 class AdminMercadoCadastroScreen extends StatefulWidget {
   final Map<String, dynamic>? mercado; // null = novo, preenchido = editar
@@ -15,8 +16,6 @@ class AdminMercadoCadastroScreen extends StatefulWidget {
 
 class _AdminMercadoCadastroScreenState
     extends State<AdminMercadoCadastroScreen> {
-  static const String _baseUrl = 'http://localhost:3333/api/admin';
-
   final _formKey = GlobalKey<FormState>();
   bool _salvando = false;
   int _paginaAtual = 0;
@@ -173,12 +172,14 @@ class _AdminMercadoCadastroScreenState
 
     final isEdicao = widget.mercado != null;
     final url = isEdicao
-        ? '$_baseUrl/mercados/${widget.mercado!['id_supermercado']}'
-        : '$_baseUrl/mercados';
+        ? AppConfig.endpoint(
+            '/admin/supermercados/${widget.mercado!['id_supermercado']}',
+          )
+        : AppConfig.endpoint('/admin/supermercados');
 
     final response = isEdicao
         ? await http.put(
-            Uri.parse(url),
+            url,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -186,7 +187,7 @@ class _AdminMercadoCadastroScreenState
             body: body,
           )
         : await http.post(
-            Uri.parse(url),
+            url,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',

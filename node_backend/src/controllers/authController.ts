@@ -2,12 +2,14 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { pool } from '../database';
 import jwt from 'jsonwebtoken';
+import { logger } from '../utils/logger';
 
 
 export const cadastrarUsuario = async (req: Request, res: Response) => {
   const { nome, email, senha, tipo_conta } = req.body;
-
+  logger.info(`📝 Tentativa de cadastro: ${email}`);
   if (!nome || !email || !senha) {
+    logger.warn('⚠️ Cadastro com campos obrigatórios ausentes');
     return res.status(400).json({
       erro: 'Campos obrigatórios: nome, email e senha.',
     });
@@ -29,7 +31,7 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
         erro: 'Este e-mail já está cadastrado.',
       });
     }
-
+    
     const senhaCriptografada = await bcrypt.hash(senha, 10);
 
     const resultConta = await client.query(
@@ -38,7 +40,7 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
        RETURNING id_conta`,
       [email, senhaCriptografada, nome]
     );
-
+    logger.info(`✅ Usuário cadastrado: ${email}`);
     const idConta = resultConta.rows[0].id_conta;
 
     await client.query(
@@ -55,9 +57,8 @@ export const cadastrarUsuario = async (req: Request, res: Response) => {
     });
 
   } catch (erro: any) {
+    logger.error(`❌ Erro no cadastro: ${erro.message}`);
     await client.query('ROLLBACK');
-
-    console.error('❌ ERRO CADASTRO:', erro);
 
     return res.status(500).json({
       erro: erro.message,
@@ -123,7 +124,7 @@ const token = jwt.sign(
 return res.json({
   status: 'sucesso',
   usuario: {
-    id_conta: usuario.conta,
+    id_conta: usuario.id_conta,
     id_usuario: usuario.id_usuario,
     nome:usuario.nome,
     email: usuario.email,
@@ -134,7 +135,7 @@ return res.json({
 
 
   } catch (erro: any) {
-    console.error('❌ ERRO LOGIN:', erro);
+    logger.error(`❌ ERRO LOGIN: ${erro.message}`);
 
     return res.status(500).json({
       erro: 'Erro interno no login',

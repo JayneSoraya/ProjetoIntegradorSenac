@@ -1,14 +1,12 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../controller/carrinho_controller.dart';
 import '../services/auth_service.dart';
+import '../core/config/app_config.dart';
 
 class ComparacaoController {
-  final String baseUrl = 'http://localhost:3333/api';
-
   Future<List<dynamic>> comparar() async {
+    final url = AppConfig.endpoint('/comparacao');
     try {
       final carrinho = CarrinhoController();
 
@@ -19,7 +17,7 @@ class ComparacaoController {
       final token = await AuthService.getToken();
 
       final response = await http.post(
-        Uri.parse('$baseUrl/comparacao'),
+        url,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

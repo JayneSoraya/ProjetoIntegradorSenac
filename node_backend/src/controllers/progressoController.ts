@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
 
-// GET /api/progresso
-// Retorna o progresso do mapa de preços para o widget Zeigarnik
 export const buscarProgresso = async (req: Request, res: Response) => {
   if (!req.usuario) {
     return res.status(401).json({ erro: 'Usuário não autenticado.' });
@@ -50,13 +49,6 @@ export const buscarProgresso = async (req: Request, res: Response) => {
             ? `Faltam ${scansRestantes} ${scansRestantes === 1 ? 'scan' : 'scans'} para desbloquear a comparação com TODOS os mercados.`
             : '🎉 Você desbloqueou a comparação completa da cidade!';
 
-    // ── 6. Economia total da cidade (prova social) ─────────
-    // Soma todas as economias potenciais das comparações
- //   const economiaResult = await pool.query(
-   //   `SELECT COALESCE(SUM(economia_potencial), 0) AS total
-   //    FROM comparacao`
- //   );
-   // const economiaCidade = parseFloat(economiaResult.rows[0].total);
 const economiaCidade = 0;
     return res.status(200).json({
       progresso:          Math.round(progresso * 100) / 100,
@@ -74,7 +66,7 @@ const economiaCidade = 0;
           : 'Seja o primeiro a mapear os preços de Araraquara!',
     });
   } catch (erro: any) {
-    console.error('❌ Erro ao buscar progresso:', erro.message);
+    logger.error('❌ Erro ao buscar progresso:', erro.message);
     return res.status(500).json({ erro: 'Erro ao buscar progresso.' });
   }
 };

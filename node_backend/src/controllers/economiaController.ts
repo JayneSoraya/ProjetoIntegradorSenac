@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
 
 // Retorna todos os dados reais do usuário para a HomeScreen
 export const buscarResumo = async (req: Request, res: Response) => {
@@ -92,7 +93,11 @@ export const buscarResumo = async (req: Request, res: Response) => {
       },
     });
   } catch (erro) {
-    console.error('❌ Erro ao buscar resumo:', erro);
+    logger.error(
+    `❌ Erro ao buscar resumo: ${
+      erro instanceof Error ? erro.message : String(erro)
+    }`
+  );
     return res.status(500).json({ erro: 'Erro ao buscar dados.' });
   }
 };

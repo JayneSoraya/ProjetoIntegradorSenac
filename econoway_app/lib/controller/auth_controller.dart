@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/usuario_model.dart';
+import '../core/config/app_config.dart';
 
 class AuthController {
-  static const String _baseUrl = 'http://localhost:3333/api/auth';
-
   static Future<Map<String, dynamic>> cadastrar(UsuarioModel usuario) async {
-    final url = Uri.parse('$_baseUrl/cadastro');
+    final url = AppConfig.endpoint('/auth/cadastro');
 
     try {
       final resposta = await http.post(

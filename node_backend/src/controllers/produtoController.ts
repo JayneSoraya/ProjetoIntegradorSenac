@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
 
 export class ProdutoController {
 
@@ -60,7 +61,7 @@ export class ProdutoController {
       return res.status(200).json(resultado.rows);
 
     } catch (erro) {
-      console.error('❌ Erro ao buscar produtos:', erro);
+      logger.error('❌ Erro ao buscar produtos:', erro);
       return res.status(500).json({ erro: 'Erro ao buscar produtos.' });
     }
   };
@@ -103,7 +104,7 @@ export class ProdutoController {
       return res.status(200).json(resultado.rows[0]);
 
     } catch (erro) {
-      console.error('❌ Erro ao buscar detalhe:', erro);
+      logger.error('❌ Erro ao buscar detalhe:', erro);
       return res.status(500).json({ erro: 'Erro ao buscar produto.' });
     }
   };

@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 import 'historico_preco_screen.dart';
+import 'sefaz_webview_screen.dart';
 
 class HistoricoDetalheScreen extends StatefulWidget {
   final int idNota;
@@ -15,11 +17,10 @@ class HistoricoDetalheScreen extends StatefulWidget {
 }
 
 class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
-  static const String _baseUrl = 'http://localhost:3333/api/historico';
-
   Map<String, dynamic>? _nota;
   List<Map<String, dynamic>> _itens = [];
   bool _carregando = true;
+  bool _sincronizando = false;
 
   @override
   void initState() {
@@ -28,21 +29,104 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
   }
 
   Future<void> _carregar() async {
-    final token = await AuthService.getToken();
-    final response = await http.get(
-      Uri.parse('$_baseUrl/compras/${widget.idNota}'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    try {
+      final token = await AuthService.getToken();
+      final url = AppConfig.endpoint('/historico/compras/${widget.idNota}');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      setState(() {
-        _nota = data['nota'];
-        _itens = List<Map<String, dynamic>>.from(data['itens']);
-        _carregando = false;
-      });
-    } else {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _nota = data['nota'];
+          _itens = List<Map<String, dynamic>>.from(data['itens']);
+          _carregando = false;
+        });
+      } else {
+        setState(() => _carregando = false);
+      }
+    } catch (_) {
       setState(() => _carregando = false);
+    }
+  }
+
+  // ── Função para Sincronizar com a SEFAZ Manualmente ──
+  Future<void> _sincronizarSefaz() async {
+    setState(() => _sincronizando = true);
+
+    try {
+      final token = await AuthService.getToken();
+      final url = AppConfig.endpoint('/notas/${widget.idNota}/sincronizar');
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final contentType = response.headers['content-type'] ?? '';
+      if (!contentType.contains('application/json')) {
+        throw Exception('O servidor retornou uma página de erro inesperada.');
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['sucesso'] == true) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nota sincronizada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await _carregar();
+      } else {
+        // Se falhou por contingência/assinatura da SEFAZ
+        if (!mounted) return;
+
+        final chaveNfce = data['chave_nfce'] ?? _nota?['chave_nfce'];
+        if (chaveNfce != null && chaveNfce.toString().startsWith('http')) {
+          // Abre a tela de WebView para o usuário digitar o Captcha
+          final atualizou = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SefazWebviewScreen(
+                idNota: widget.idNota,
+                urlSefaz: chaveNfce,
+              ),
+            ),
+          );
+
+          if (atualizou == true) {
+            await _carregar();
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['erro'] ?? 'SEFAZ indisponível.'),
+              backgroundColor: Colors.orange[800],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Falha de conexão: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _sincronizando = false);
     }
   }
 
@@ -58,6 +142,8 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool emContingencia = _nota?['status'] == 'CONTINGENCIA';
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_nota?['supermercado'] ?? 'Detalhe da Compra'),
@@ -70,21 +156,51 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
             )
           : Column(
               children: [
-                // ── Cabeçalho da nota ──────────────────────
+                // ── Cabeçalho da Nota ──────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
-                  color: AppColors.primary.withValues(alpha: 0.06),
+                  color: emContingencia
+                      ? Colors.amber.withValues(alpha: 0.08)
+                      : AppColors.primary.withValues(alpha: 0.06),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _nota?['supermercado'] ?? '—',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _nota?['supermercado'] ?? '—',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: emContingencia
+                                    ? Colors.amber[900]
+                                    : AppColors.primary,
+                              ),
+                            ),
+                          ),
+                          if (emContingencia)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'Contingência',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -99,15 +215,26 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${_itens.length} produtos',
-                            style: const TextStyle(color: Colors.grey),
+                            emContingencia
+                                ? '⚠️ Aguardando SEFAZ'
+                                : '${_itens.length} produtos',
+                            style: TextStyle(
+                              color: emContingencia
+                                  ? Colors.amber[800]
+                                  : Colors.grey,
+                              fontWeight: emContingencia
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                           ),
                           Text(
                             'Total: R\$ ${double.tryParse(_nota?['valor_total']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0,00'}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                              color: emContingencia
+                                  ? Colors.amber[900]
+                                  : AppColors.primary,
                             ),
                           ),
                         ],
@@ -116,13 +243,88 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                   ),
                 ),
 
-                // ── Lista de itens ─────────────────────────
+                // ── Banner de Contingência com Botão de Sincronização ──
+                if (emContingencia)
+                  Container(
+                    margin: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.1),
+                      border: Border.all(color: Colors.amber),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.amber,
+                              size: 28,
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Esta nota está em contingência. Os produtos aparecerão assim que a SEFAZ normalizar a consulta.',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Botão de Ação Manual
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _sincronizando
+                                ? null
+                                : _sincronizarSefaz,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[800],
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            icon: _sincronizando
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.sync, size: 20),
+                            label: Text(
+                              _sincronizando
+                                  ? 'Consultando SEFAZ...'
+                                  : 'Sincronizar com SEFAZ Agora',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // ── Lista de Itens ─────────────────────────
                 Expanded(
                   child: _itens.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
-                            'Nenhum item encontrado.',
-                            style: TextStyle(color: Colors.grey),
+                            emContingencia
+                                ? 'Nenhum produto listado no momento.'
+                                : 'Nenhum item encontrado.',
+                            style: const TextStyle(color: Colors.grey),
                           ),
                         )
                       : ListView.builder(
@@ -200,7 +402,6 @@ class _HistoricoDetalheScreenState extends State<HistoricoDetalheScreen> {
                                         ],
                                       ),
                                     ),
-
                                     Row(
                                       children: [
                                         Text(

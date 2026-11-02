@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 import 'historico_detalhe_screen.dart';
 
 class HistoricoComprasScreen extends StatefulWidget {
@@ -14,8 +15,6 @@ class HistoricoComprasScreen extends StatefulWidget {
 }
 
 class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
-  static const String _baseUrl = 'http://localhost:3333/api/historico';
-
   List<Map<String, dynamic>> _compras = [];
   bool _carregando = true;
   String _erro = '';
@@ -33,9 +32,13 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
     });
     try {
       final token = await AuthService.getToken();
+
+      // Utilizando AppConfig para padronizar a URL de histórico
+      final url = AppConfig.endpoint('/historico/compras');
+
       final response = await http
           .get(
-            Uri.parse('$_baseUrl/compras'),
+            url,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -142,6 +145,8 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
               itemCount: _compras.length,
               itemBuilder: (_, i) {
                 final c = _compras[i];
+                final bool emContingencia = c['status'] == 'CONTINGENCIA';
+
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   shape: RoundedRectangleBorder(
@@ -161,22 +166,28 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          // Ícone
+                          // Ícone dinâmico (Amarelo se contingência, Primário se processada)
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
+                              color: emContingencia
+                                  ? Colors.amber.withValues(alpha: 0.1)
+                                  : AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(
-                              Icons.receipt_long_outlined,
-                              color: AppColors.primary,
+                            child: Icon(
+                              emContingencia
+                                  ? Icons.warning_amber_rounded
+                                  : Icons.receipt_long_outlined,
+                              color: emContingencia
+                                  ? Colors.amber[800]
+                                  : AppColors.primary,
                               size: 28,
                             ),
                           ),
                           const SizedBox(width: 16),
 
-                          // Dados
+                          // Dados da Compra
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -197,13 +208,22 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 2),
-                                Text(
-                                  '${c['total_itens'] ?? 0} produtos',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                                emContingencia
+                                    ? const Text(
+                                        '⚠️ Aguardando SEFAZ',
+                                        style: TextStyle(
+                                          color: Colors.amber,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      )
+                                    : Text(
+                                        '${c['total_itens'] ?? 0} produtos',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                               ],
                             ),
                           ),
@@ -214,8 +234,10 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
                             children: [
                               Text(
                                 _formatarValor(c['valor_total']),
-                                style: const TextStyle(
-                                  color: AppColors.primary,
+                                style: TextStyle(
+                                  color: emContingencia
+                                      ? Colors.amber[800]
+                                      : AppColors.primary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                 ),

@@ -4,6 +4,7 @@ import { Send, CheckCircle, Paperclip, Plus, X, FileText } from 'lucide-react';
 import axios from 'axios';
 import type { ContactFormData } from '../types';
 
+
 const MAX_TOTAL_SIZE = 5 * 1024 * 1024; // 5MB em bytes
 
 const ContactForm: React.FC = () => {

@@ -14,7 +14,7 @@ class ProdutoRepository implements IProdutoRepository {
     };
   }
 
-  // RF05 — Busca de produtos por nome/marca e categoria
+  // RF05 — Busca de produtos por nome/marca/categoria/codigo de barras
   @override
   Future<List<ProdutoDTO>> buscarProduto(
     String pesquisa, {

@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
+import { processarNotaPorUrl } from '../services/sefazService';
 
 
 // Lista todas as notas fiscais do usuário logado
@@ -18,6 +20,7 @@ export const listarCompras = async (req: Request, res: Response) => {
         nf.data_compra,
         nf.valor_total,
         nf.chave_nfce,
+        nf.status,
         s.nome_fantasia   AS supermercado,
         s.endereco_completo,
         COUNT(ni.id_item) AS total_itens
@@ -30,6 +33,7 @@ export const listarCompras = async (req: Request, res: Response) => {
         nf.data_compra,
         nf.valor_total,
         nf.chave_nfce,
+        nf.status,
         s.nome_fantasia,
         s.endereco_completo
       ORDER BY nf.data_compra DESC
@@ -39,13 +43,14 @@ export const listarCompras = async (req: Request, res: Response) => {
 
     return res.status(200).json(resultado.rows);
   } catch (erro: any) {
-    console.error('❌ Erro ao listar compras:', erro.message);
+    logger.error(`❌ Erro ao buscar histórico de compras ${erro.message}`);
     return res.status(500).json({ erro: 'Erro ao buscar histórico de compras.' });
   }
 };
 
 // Detalhe de uma nota: lista todos os itens comprados
 export const detalheCompra = async (req: Request, res: Response) => {
+  
   if (!req.usuario) {
     return res.status(401).json({ erro: 'Usuário não autenticado.' });
   }
@@ -72,6 +77,7 @@ export const detalheCompra = async (req: Request, res: Response) => {
         nf.id_nota,
         nf.data_compra,
         nf.valor_total,
+        nf.status,
         s.nome_fantasia AS supermercado,
         s.endereco_completo
       FROM nota_fiscal nf
@@ -105,7 +111,9 @@ export const detalheCompra = async (req: Request, res: Response) => {
       itens: itens.rows,
     });
   } catch (erro: any) {
-    console.error('❌ Erro ao buscar detalhe da compra:', erro.message);
+    logger.error(
+    `❌ Erro ao buscar detalhe da compra: ${erro.message}`
+  );
     return res.status(500).json({ erro: 'Erro ao buscar detalhe da compra.' });
   }
 };
@@ -162,14 +170,14 @@ export const historicoPrecoProduto = async (req: Request, res: Response) => {
       historico: historico.rows,
     });
   } catch (erro: any) {
-    console.error('❌ Erro ao buscar histórico de preços:', erro.message);
+    logger.error(
+    `❌ Erro ao buscar histórico de preços: ${erro.message}`
+     );
     return res.status(500).json({ erro: 'Erro ao buscar histórico de preços.' });
   }
 };
 
 // Resumo de economia do usuário
-
-
 export const resumoEconomia = async (req: Request, res: Response) => {
   if (!req.usuario) {
     return res.status(401).json({ erro: 'Usuário não autenticado.' });
@@ -224,7 +232,66 @@ export const resumoEconomia = async (req: Request, res: Response) => {
       ),
     });
   } catch (erro: any) {
-    console.error('❌ Erro ao buscar resumo:', erro.message);
+    logger.error(
+    `❌ Erro ao buscar resumo: ${erro.message}`
+     );
     return res.status(500).json({ erro: 'Erro ao buscar resumo.' });
+  }
+};
+
+export const sincronizarNotaContingencia = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const idUsuario = req.usuario?.id_usuario;
+
+  if (!idUsuario) {
+    return res.status(401).json({ erro: 'Usuário não autenticado.' });
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT id_nota, chave_nfce, status 
+       FROM nota_fiscal 
+       WHERE id_nota = $1 AND id_usuario = $2`,
+      [id, idUsuario]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Nota fiscal não encontrada.' });
+    }
+
+    const nota = result.rows[0];
+
+    if (nota.status !== 'CONTINGENCIA') {
+      return res.status(400).json({ mensagem: 'Esta nota já foi processada.' });
+    }
+
+    // Tenta o scraping normal
+    const resultado = await processarNotaPorUrl(nota.chave_nfce, idUsuario, nota.id_nota);
+
+    logger.info(`✅ Nota ID ${id} sincronizada manualmente com sucesso pelo usuário ${idUsuario}`);
+
+    return res.status(200).json({
+      ...resultado,
+      sucesso: true,
+      mensagem: 'Nota sincronizada com sucesso!',
+    });
+
+  } catch (erro: any) {
+    logger.warn(`⚠️ Falha no scraping manual (Contingência mantida): ${erro.message}`);
+
+    // Busca novamente a chave_nfce
+    const notaRes = await pool.query(
+      `SELECT chave_nfce FROM nota_fiscal WHERE id_nota = $1`,
+      [id]
+    );
+    const chaveNfce = notaRes.rows[0]?.chave_nfce;
+
+    return res.status(422).json({
+      sucesso: false,
+      contingencia: true,
+      erro: 'Nota fiscal em contingência ou com assinatura inconsistente na SEFAZ. Necessária validação manual.',
+      chave_nfce: chaveNfce, 
+      detalhe: erro.message,
+    });
   }
 };

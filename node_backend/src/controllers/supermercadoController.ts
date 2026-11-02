@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { SupermercadoService } from '../services/supermercadoService';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
 
 
 const supermercadoService = new SupermercadoService();
@@ -101,7 +102,7 @@ export class SupermercadoController {
       res.status(200).json(resultado.rows[0]);
 
     } catch (error) {
-      console.error(error);
+      logger.error('❌ Erro ao buscar perfil do mercado:', error);
 
       res.status(500).json({
         erro: 'Erro ao buscar perfil do mercado'

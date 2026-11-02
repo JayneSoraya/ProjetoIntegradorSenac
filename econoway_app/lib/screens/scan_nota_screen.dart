@@ -4,6 +4,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 
 class ScanNotaScreen extends StatefulWidget {
   const ScanNotaScreen({super.key});
@@ -37,9 +38,11 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
 
     try {
       final token = await AuthService.getToken();
+      final urlEndpoint = AppConfig.endpoint('/notas/processar');
+
       final response = await http
           .post(
-            Uri.parse('http://localhost:3333/api/notas/processar'),
+            urlEndpoint,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': 'Bearer $token',
@@ -52,64 +55,45 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
 
       if (!mounted) return;
 
-      response.statusCode == 200
-          ? _mostrarSucesso(data)
-          : _mostrarErro(data['erro'] ?? 'Erro ao processar nota.');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _mostrarSucesso(data);
+      } else {
+        _mostrarErro(data['erro'] ?? 'Erro ao processar nota.');
+      }
     } catch (e) {
       if (!mounted) return;
       _mostrarErro('Não foi possível conectar ao servidor.');
     }
+    if (!mounted) return;
 
     setState(() => _processando = false);
   }
 
   void _mostrarSucesso(Map<String, dynamic> data) {
+    bool emContingencia = data['contingencia'] ?? false;
+    String mensagem = data['mensagem'] ?? 'Nota processada com sucesso!';
+
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green),
-            SizedBox(width: 8),
-            Text('Nota processada!'),
-          ],
+      builder: (context) => AlertDialog(
+        title: Text(
+          emContingencia ? '⚠️ Nota em Contingência' : '🎉 Compra Registrada!',
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Supermercado: ${data['supermercado']}'),
-            const SizedBox(height: 4),
-            Text('Produtos salvos: ${data['produtos_salvos']}'),
-            const SizedBox(height: 8),
-            const Row(
-              children: [
-                Icon(Icons.bolt, color: AppColors.secondary, size: 16),
-                SizedBox(width: 4),
-                Text(
-                  '+100 EconoCoins',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+            Text(mensagem),
+            const SizedBox(height: 10),
+            if (!emContingencia) ...[
+              Text('Supermercado: ${data['supermercado']}'),
+              Text('Produtos salvos: ${data['produtos_salvos']}'),
+            ] else ...[
+              Text('Valor Total: R\$ ${data['valor_total']}'),
+            ],
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            child: const Text(
-              'Ótimo!',
-              style: TextStyle(color: AppColors.primary),
-            ),
-          ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -117,8 +101,20 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
                 _escaneado = false;
                 _processando = false;
               });
+              _scanner.start();
             },
-            child: const Text('Escanear outra'),
+            child: const Text('Escanear outra nota'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -145,6 +141,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
                 _escaneado = false;
                 _processando = false;
               });
+              _scanner.start();
             },
             child: const Text('Tentar novamente'),
           ),

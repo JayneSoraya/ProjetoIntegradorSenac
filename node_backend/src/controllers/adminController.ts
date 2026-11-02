@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
+import { logger } from '../utils/logger';
 
 // ── GET /api/admin/mercados ────────────────────────────────
 export const listarMercados = async (req: Request, res: Response) => {
@@ -21,7 +22,8 @@ export const listarMercados = async (req: Request, res: Response) => {
     `);
     return res.status(200).json(resultado.rows);
   } catch (erro) {
-    console.error('❌ Erro ao listar mercados:', erro);
+    logger.error(`❌ Erro ao listar mercados: ${
+      erro instanceof Error? erro.message: String(erro)}`);
     return res.status(500).json({ erro: 'Erro ao buscar mercados.' });
   }
 };
@@ -42,7 +44,11 @@ export const cadastrarMercado = async (req: Request, res: Response) => {
     );
     return res.status(201).json(resultado.rows[0]);
   } catch (erro) {
-    console.error('❌ Erro ao cadastrar mercado:', erro);
+    logger.error(
+    `❌ Erro ao cadastrar mercado: ${
+      erro instanceof Error ? erro.message : String(erro)
+    }`
+  );
     return res.status(500).json({ erro: 'Erro ao cadastrar mercado.' });
   }
 };
@@ -119,7 +125,11 @@ export const listarUsuarios = async (req: Request, res: Response) => {
     const resultado = await pool.query(sql, params);
     return res.status(200).json(resultado.rows);
   } catch (erro) {
-    console.error('❌ Erro ao listar usuários:', erro);
+    logger.error(
+    `❌ Erro ao listar usuários: ${
+      erro instanceof Error ? erro.message : String(erro)
+    }`
+  );
     return res.status(500).json({ erro: 'Erro ao buscar usuários.' });
   }
 };
