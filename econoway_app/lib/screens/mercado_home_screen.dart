@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:econoway_app/services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
-import 'editar_mercado_screen.dart';
+import 'admin_mercado_cadastro_screen.dart';
+import '../core/network/api_client.dart';
 
 class MercadoHomeScreen extends StatelessWidget {
   const MercadoHomeScreen({super.key});
@@ -60,13 +61,39 @@ class MercadoHomeScreen extends StatelessWidget {
                       IconButton(
                         icon: const Icon(Icons.edit),
                         tooltip: 'Editar dados',
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const EditarMercadoScreen(),
-                            ),
-                          );
+                        onPressed: () async {
+                          try {
+                            // 1. Busca os dados completos do perfil do mercado logado via API
+                            final dadosMercado = await ApiClient.get(
+                              '/supermercados/meu-perfil',
+                            );
+
+                            if (!context.mounted) return;
+
+                            // 2. Abre a tela completa de cadastro/edição do admin com os dados preenchidos
+                            final atualizou = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AdminMercadoCadastroScreen(
+                                  mercado: dadosMercado,
+                                ),
+                              ),
+                            );
+
+                            if (atualizou == true) {
+                              // Ex: _carregarDadosDoMercado();
+                            }
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Erro ao carregar dados para edição: $e',
+                                ),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
                         },
                       ),
                     ],

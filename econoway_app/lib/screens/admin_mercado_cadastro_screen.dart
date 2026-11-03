@@ -173,7 +173,7 @@ class _AdminMercadoCadastroScreenState
     final isEdicao = widget.mercado != null;
     final url = isEdicao
         ? AppConfig.endpoint(
-            '/admin/supermercados/${widget.mercado!['id_supermercado']}',
+            '/supermercados/${widget.mercado!['id_supermercado']}',
           )
         : AppConfig.endpoint('/admin/supermercados');
 

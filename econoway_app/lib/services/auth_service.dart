@@ -1,138 +1,125 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../core/network/api_client.dart';
+import '../core/storage/secure_session_storage.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://localhost:3333/api/auth';
-  static const String _tokenKey = 'jwt_token';
-  static const String _nomeKey = 'user_nome';
-  static const String _tipoContaKey = 'tipo_conta';
-
-  // 1. MANTER SESSÃO
   static Future<bool> isUserLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
-    return token != null && token.isNotEmpty;
-  }
+    final token = await SecureSessionStorage.readToken();
+    if (token == null || token.isEmpty) return false;
 
-  // 2. LOGIN
+    if (_isJwtExpired(token)) {
+      await logout();
+      return false;
+    }
+
+    return true;
+  }
 
   static Future<Map<String, dynamic>> login(String email, String senha) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'senha': senha}),
-          )
-          .timeout(const Duration(seconds: 7));
+      final data =
+          await ApiClient.post(
+                '/auth/login',
+                authenticated: false,
+                body: {'email': email.trim(), 'senha': senha},
+              )
+              as Map<String, dynamic>?;
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_tokenKey, data['token']);
-
-        await prefs.setString(_nomeKey, data['usuario']['nome'] ?? 'Usuário');
-        await prefs.setString(
-          _tipoContaKey,
-          data['usuario']['tipo_conta'] ?? 'USER',
-        );
-
-        return {'status': 'sucesso', 'usuario': data['usuario']};
-      } else {
-        return {
-          'status': 'erro',
-          'mensagem': data['erro'] ?? 'Credenciais inválidas.',
-        };
+      final token = data?['token']?.toString();
+      final usuario = data?['usuario'];
+      if (token == null || usuario is! Map<String, dynamic>) {
+        return {'status': 'erro', 'mensagem': 'Resposta de login inválida.'};
       }
-    } catch (e) {
+      final idUsuario =
+          usuario['id']?.toString() ?? usuario['id_mercado']?.toString() ?? '';
+      await SecureSessionStorage.saveSession(
+        token: token,
+        name: usuario['nome']?.toString() ?? 'Usuário',
+        role: usuario['tipo_conta']?.toString(),
+        id: idUsuario,
+      );
+
+      return {'status': 'sucesso', 'usuario': usuario};
+    } on ApiException catch (e) {
+      return {'status': 'erro', 'mensagem': e.message};
+    } catch (_) {
       return {'status': 'erro', 'mensagem': 'Falha na conexão com o servidor.'};
     }
   }
 
-  static Future<String> getTipoConta() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tipoContaKey) ?? 'USER';
-  }
+  static Future<String?> getUserId() => SecureSessionStorage.readUserId();
 
-  // 3. CADASTRAR
   static Future<Map<String, dynamic>> cadastrar(
     String nome,
     String email,
     String senha,
   ) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/cadastro'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'nome': nome, 'email': email, 'senha': senha}),
-          )
-          .timeout(const Duration(seconds: 7));
+      final data =
+          await ApiClient.post(
+                '/auth/cadastro',
+                authenticated: false,
+                body: {
+                  'nome': nome.trim(),
+                  'email': email.trim(),
+                  'senha': senha,
+                },
+              )
+              as Map<String, dynamic>?;
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return {
-          'status': 'sucesso',
-          'mensagem': data['mensagem'] ?? 'Conta criada com sucesso!',
-        };
-      } else {
-        return {
-          'status': 'erro',
-          'mensagem': data['erro'] ?? 'Erro ao criar conta.',
-        };
-      }
-    } catch (e) {
+      return {
+        'status': 'sucesso',
+        'mensagem':
+            data?['mensagem']?.toString() ?? 'Conta criada com sucesso!',
+      };
+    } on ApiException catch (e) {
+      return {'status': 'erro', 'mensagem': e.message};
+    } catch (_) {
       return {'status': 'erro', 'mensagem': 'Falha na conexão com o servidor.'};
     }
   }
 
-  // 4. RECUPERAR SENHA
   static Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/recuperar-senha'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email}),
-          )
-          .timeout(const Duration(seconds: 7));
+      final data =
+          await ApiClient.post(
+                '/auth/recuperar-senha',
+                authenticated: false,
+                body: {'email': email.trim()},
+              )
+              as Map<String, dynamic>?;
 
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        return {
-          'status': 'sucesso',
-          'mensagem':
-              data['mensagem'] ?? 'Instruções enviadas para o seu e-mail.',
-        };
-      } else {
-        return {
-          'status': 'erro',
-          'mensagem': data['erro'] ?? 'E-mail não encontrado.',
-        };
-      }
-    } catch (e) {
+      return {
+        'status': 'sucesso',
+        'mensagem': data?['mensagem']?.toString() ?? 'Solicitação registrada.',
+      };
+    } on ApiException catch (e) {
+      return {'status': 'erro', 'mensagem': e.message};
+    } catch (_) {
       return {'status': 'erro', 'mensagem': 'Falha na conexão com o servidor.'};
     }
   }
 
-  // 5. LOGOUT
-  static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_nomeKey);
-  }
+  static Future<void> logout() => SecureSessionStorage.clear();
+  static Future<String?> getToken() => SecureSessionStorage.readToken();
+  static Future<String> getNome() async =>
+      await SecureSessionStorage.readName() ?? 'Usuário';
+  static Future<String?> getRole() => SecureSessionStorage.readRole();
 
-  static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
-  }
-
-  static Future<String> getNome() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_nomeKey) ?? 'Usuário';
+  static bool _isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      if (payload is! Map<String, dynamic>) return true;
+      final exp = payload['exp'];
+      if (exp is! num) return true;
+      final expiresAt = DateTime.fromMillisecondsSinceEpoch(exp.toInt() * 1000);
+      return DateTime.now().isAfter(expiresAt);
+    } catch (_) {
+      return true;
+    }
   }
 }

@@ -67,14 +67,13 @@ class _SefazWebviewScreenState extends State<SefazWebviewScreen> {
     );
   }
 
-  // Captura o HTML interno 
+  // Captura o HTML interno
   Future<void> _capturarEEnviarHtml() async {
     if (_webViewController == null) return;
 
     setState(() => _enviandoHtml = true);
 
     try {
-      
       final htmlContent = await _webViewController!.evaluateJavascript(
         source: """
           (function() {
@@ -114,11 +113,10 @@ class _SefazWebviewScreenState extends State<SefazWebviewScreen> {
 
   // Envia o HTML completo para o backend processar os itens
   Future<void> _enviarHtmlParaBackend(String htmlContent) async {
-    
     try {
       final token = await AuthService.getToken();
       final url = AppConfig.endpoint('/notas/${widget.idNota}/importar-html');
-      
+
       final response = await http.post(
         url,
         headers: {

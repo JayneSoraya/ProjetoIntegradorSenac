@@ -9,18 +9,25 @@ class SecureSessionStorage {
   static const String _tokenKey = 'jwt_token';
   static const String _nameKey = 'user_nome';
   static const String _roleKey = 'tipo_conta';
+  static const String _idKey = 'user_id';
 
   /// Salva todos os dados da sessão de uma só vez após o login bem-sucedido.
   static Future<void> saveSession({
     required String token,
     required String name,
     String? role,
+    required String id,
   }) async {
     await _storage.write(key: _tokenKey, value: token);
     await _storage.write(key: _nameKey, value: name);
     if (role != null) {
       await _storage.write(key: _roleKey, value: role);
     }
+    await _storage.write(key: _idKey, value: id);
+  }
+
+  static Future<String?> readUserId() async {
+    return await _storage.read(key: _idKey);
   }
 
   /// Lê o token JWT armazenado.

@@ -30,33 +30,6 @@ class _HomeScreenState extends State<HomeScreen>
   bool _carregando = true;
   String? _tipoConta;
 
-  Future<void> _verificarTipoConta() async {
-    final tipo = await AuthService.getTipoConta();
-
-    if (!mounted) return;
-
-    setState(() {
-      _tipoConta = tipo;
-    });
-
-    if (tipo == 'MERCADO') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MercadoHomeScreen()),
-        );
-      });
-    }
-    if (tipo == 'ADMIN') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminScreen()),
-        );
-      });
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -65,8 +38,41 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 1800),
     );
     _economiaAnim = const AlwaysStoppedAnimation(0);
+
+    _verificarTipoContaEInicializar();
+  }
+
+  Future<void> _verificarTipoContaEInicializar() async {
+    final rawTipo = await AuthService.getRole();
+    final tipo = rawTipo?.toUpperCase().trim();
+
+    if (!mounted) return;
+
+    // Se for Mercado redireciona
+    if (tipo == 'MERCADO') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MercadoHomeScreen()),
+      );
+      return;
+    }
+
+    // Se for Admin, redireciona
+    if (tipo == 'ADMIN') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminScreen()),
+      );
+      return;
+    }
+
+    setState(() {
+      _tipoConta = tipo;
+      _carregando = false;
+    });
+
     _carregarResumo();
-    _verificarTipoConta();
+    _animController.forward();
   }
 
   Future<void> _carregarResumo() async {
@@ -98,6 +104,12 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_carregando) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final quantidade = CarrinhoController().quantidadeTotal;
 
     return Scaffold(

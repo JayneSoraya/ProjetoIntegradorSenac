@@ -19,4 +19,13 @@ router.get(
   )
 );
 
+
+router.put(
+  '/:id',
+  autenticar,
+  supermercadoController.atualizar.bind(
+    supermercadoController
+  )
+);
+
 export default router;

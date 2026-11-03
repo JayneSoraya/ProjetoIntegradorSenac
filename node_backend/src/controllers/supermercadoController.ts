@@ -109,4 +109,100 @@ export class SupermercadoController {
       });
     }
   }
+
+  async atualizar(req: Request, res: Response): Promise<void> {
+    console.log("🚀 MÉTODO ATUALIZAR CHAMADO! ID:", req.params.id);
+    console.log("👤 USUÁRIO LOGADO:", req.usuario);
+    const { id } = req.params;
+    const {
+      nome_fantasia,
+      cnpj,
+      email,
+      telefone,
+      cep,
+      logradouro,
+      numero,
+      bairro,
+      cidade,
+      estado,
+      pais,
+      horario_semana_inicio,
+      horario_semana_fim,
+      horario_sabado_inicio,
+      horario_sabado_fim,
+      horario_domingo_inicio,
+      horario_domingo_fim,
+      horario_feriado_inicio,
+      horario_feriado_fim,
+    } = req.body;
+
+    try {
+      const resultado = await pool.query(
+        `UPDATE supermercado 
+         SET nome_fantasia = $1,
+             cnpj = $2,
+             email = $3,
+             telefone = $4,
+             cep = $5,
+             logradouro = $6,
+             numero = $7,
+             bairro = $8,
+             cidade = $9,
+             estado = $10,
+             pais = $11,
+             horario_semana_inicio = $12,
+             horario_semana_fim = $13,
+             horario_sabado_inicio = $14,
+             horario_sabado_fim = $15,
+             horario_domingo_inicio = $16,
+             horario_domingo_fim = $17,
+             horario_feriado_inicio = $18,
+             horario_feriado_fim = $19
+         WHERE id_supermercado = $20 
+         RETURNING *`,
+        [
+          nome_fantasia,
+          cnpj,
+          email,
+          telefone,
+          cep,
+          logradouro,
+          numero,
+          bairro,
+          cidade,
+          estado,
+          pais,
+          horario_semana_inicio,
+          horario_semana_fim,
+          horario_sabado_inicio,
+          horario_sabado_fim,
+          horario_domingo_inicio,
+          horario_domingo_fim,
+          horario_feriado_inicio,
+          horario_feriado_fim,
+          id,
+        ]
+      );
+
+      if (resultado.rows.length === 0) {
+        res.status(404).json({ erro: 'Mercado não encontrado para atualização.' });
+        return;
+      }
+
+      logger.info(`✅ Supermercado ID ${id} atualizado com sucesso.`);
+
+      res.status(200).json({
+        sucesso: true,
+        mensagem: 'Mercado atualizado com sucesso!',
+        dados: resultado.rows[0],
+      });
+
+    } catch (error: any) {
+      logger.error(`❌ Erro ao atualizar supermercado ID ${id}:`, error);
+      res.status(500).json({
+        erro: 'Erro interno ao atualizar o mercado.',
+        detalhe: error.message,
+      });
+    }
+  }
 }

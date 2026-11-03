@@ -13,7 +13,6 @@ import {
 
 const router = Router();
 
-// Todas as rotas admin exigem autenticação + ser ADMIN
 router.use(autenticar, apenasAdmin);
 
 // ── Mercados (RF21) ────────────────────────────────────────
