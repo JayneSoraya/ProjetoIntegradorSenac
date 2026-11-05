@@ -190,16 +190,30 @@ export const listarProdutosAdmin = async (req: Request, res: Response) => {
   }
 };
 
-export const corrigirCategoria = async (req: Request, res: Response) => {
+export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { categoria } = req.body;
+  const { nome_produto, marca, categoria, peso, unidade_medida } = req.body;
+
   try {
     await pool.query(
-      'UPDATE produto SET categoria = $1 WHERE id_produto = $2',
-      [categoria, id]
+      `UPDATE produto 
+       SET nome_produto = $1, 
+           marca = $2, 
+           categoria = $3, 
+           peso = $4, 
+           unidade_medida = $5, 
+           status_enriquecimento = 'CONCLUIDO' 
+       WHERE id_produto = $6`,
+      [nome_produto, marca || null, categoria, peso || null, unidade_medida || null, id]
     );
-    return res.status(200).json({ mensagem: 'Categoria atualizada.' });
+
+    return res.status(200).json({ mensagem: 'Produto atualizado com sucesso!' });
   } catch (erro) {
-    return res.status(500).json({ erro: 'Erro ao atualizar categoria.' });
+    logger.error(
+      `Erro ao atualizar produto: ${
+        erro instanceof Error ? erro.message : String(erro)
+      }`
+    );
+    return res.status(500).json({ erro: 'Erro ao atualizar produto.' });
   }
 };

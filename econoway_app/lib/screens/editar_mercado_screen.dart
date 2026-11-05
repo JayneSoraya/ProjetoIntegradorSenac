@@ -157,18 +157,14 @@ class _EditarMercadoScreenState extends State<EditarMercadoScreen> {
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   Future<void> _salvarAlteracoes() async {
-    print('🔵 1. Botão de guardar pressionado!');
-
     // 1. Valida o formulário visual
     if (!_formKey.currentState!.validate()) {
-      print('❌ 2. Validação do formulário falhou.');
       return;
     }
 
     // 2. Verifica se o ID do mercado existe para evitar crashes
     final idMercado = widget.mercado['id_mercado'] ?? widget.mercado['id'];
     if (idMercado == null) {
-      print('❌ ERRO CRÍTICO: O ID do mercado é nulo!');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Erro: ID do mercado não encontrado.'),
@@ -178,14 +174,10 @@ class _EditarMercadoScreenState extends State<EditarMercadoScreen> {
       return;
     }
 
-    print('✅ ID do mercado detetado: $idMercado');
     setState(() => _salvando = true);
 
     try {
       final url = '/supermercados/$idMercado';
-      print('🔍 A enviar dados para o URL: $url');
-      print('DADOS DO MERCADO: ${widget.mercado}');
-      print('ID ENCONTRADO: $idMercado');
       await ApiClient.put(
         url,
         body: {
@@ -211,8 +203,6 @@ class _EditarMercadoScreenState extends State<EditarMercadoScreen> {
         },
       );
 
-      print('🚀 Dados guardados com sucesso!');
-
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,7 +214,6 @@ class _EditarMercadoScreenState extends State<EditarMercadoScreen> {
 
       Navigator.pop(context, true);
     } catch (e) {
-      print('⚠️ Erro capturado no envio: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -307,18 +296,13 @@ class _EditarMercadoScreenState extends State<EditarMercadoScreen> {
                       onPressed: _salvando
                           ? null
                           : () {
-                              print(
-                                '🎯 CLIQUE NO BOTÃO! Página atual: $_paginaAtual | Total de páginas: ${_paginas.length}',
-                              );
                               if (_paginaAtual < _paginas.length - 1) {
-                                print('➡️ A avançar página...');
                                 _pageController.nextPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeInOut,
                                 );
                                 setState(() => _paginaAtual++);
                               } else {
-                                print('💾 A chamar _salvarAlteracoes() agora!');
                                 _salvarAlteracoes();
                               }
                             },

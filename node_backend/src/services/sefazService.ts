@@ -2,6 +2,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { pool } from '../database';
 import { logger } from '../utils/logger';
+import { ProdutoService } from './produtoService';
 
 function classificarProduto(nome: string): string {
   const n = nome.toLowerCase();
@@ -168,7 +169,14 @@ export async function processarNotaPorUrl(url_qrcode: string, id_usuario: number
 
   for (const item of itensDaNota) {
     let idProduto: number;
-    const categoria = classificarProduto(item.nome);
+    const nomeOriginal = item.nome; 
+    const nomeNormalizado = ProdutoService.normalizarNome(nomeOriginal);
+    const medida = ProdutoService.extrairMedida(nomeOriginal);
+    const categoria = classificarProduto(nomeOriginal);
+    const precisaRevisao = categoria === 'Não classificado';
+    const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
+    
+    logger.info(`PRODUTO: ${nomeOriginal} | MEDIDA: ${JSON.stringify(medida)} | STATUS: ${statusEnriquecimento}`);
 
     const prodExiste = await pool.query(
       'SELECT id_produto FROM produto WHERE codigo_barras = $1',
@@ -179,8 +187,19 @@ export async function processarNotaPorUrl(url_qrcode: string, id_usuario: number
       idProduto = prodExiste.rows[0].id_produto;
     } else {
       const novoProd = await pool.query(
-        `INSERT INTO produto (codigo_barras, nome_produto, categoria) VALUES ($1, $2, $3) RETURNING id_produto`,
-        [item.codigo, item.nome, categoria]
+        `INSERT INTO produto (
+          codigo_barras, nome_produto, nome_original, categoria, 
+          peso, unidade_medida, status_enriquecimento, enriquecido
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE) RETURNING id_produto`,
+        [
+          item.codigo,
+          nomeNormalizado,
+          nomeOriginal,
+          categoria,
+          medida?.quantidade ?? null,
+          medida?.unidade ?? null,
+          statusEnriquecimento
+        ]
       );
       idProduto = novoProd.rows[0].id_produto;
     }
@@ -214,7 +233,6 @@ export async function processarNotaPorUrl(url_qrcode: string, id_usuario: number
 }
 
 export async function processarHtmlSefazManual(htmlContent: string, id_usuario: number, idNotaExistente: number) {
-  // 👈 O logger que querias colocar para depuração
   logger.info(`HTML recebido para parse (Nota ID ${idNotaExistente}). Tamanho: ${htmlContent?.length || 0} caracteres`);
 
   if (!htmlContent || htmlContent.length < 200) {
@@ -307,11 +325,15 @@ export async function processarHtmlSefazManual(htmlContent: string, id_usuario: 
     [idSupermercado, dataEmissaoDB, valorTotalNota, idNotaExistente]
   );
 
-  const produtosSalvos: string[] = [];
+ const produtosSalvos: string[] = [];
 
   for (const item of itensDaNota) {
     let idProduto: number;
-    const categoria = classificarProduto(item.nome); 
+    const nomeOriginal = item.nome;
+    const categoria = classificarProduto(nomeOriginal); 
+    const medida = ProdutoService.extrairMedida(nomeOriginal);
+    const precisaRevisao = categoria === 'Não classificado';
+    const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
 
     const prodExiste = await pool.query(
       'SELECT id_produto FROM produto WHERE codigo_barras = $1',
@@ -322,8 +344,19 @@ export async function processarHtmlSefazManual(htmlContent: string, id_usuario: 
       idProduto = prodExiste.rows[0].id_produto;
     } else {
       const novoProd = await pool.query(
-        `INSERT INTO produto (codigo_barras, nome_produto, categoria) VALUES ($1, $2, $3) RETURNING id_produto`,
-        [item.codigo, item.nome, categoria]
+        `INSERT INTO produto (
+          codigo_barras, nome_produto, nome_original, categoria, 
+          peso, unidade_medida, status_enriquecimento, enriquecido
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE) RETURNING id_produto`,
+        [
+          item.codigo,
+          nomeOriginal,
+          nomeOriginal,
+          categoria,
+          medida?.quantidade ?? null,
+          medida?.unidade ?? null,
+          statusEnriquecimento
+        ]
       );
       idProduto = novoProd.rows[0].id_produto;
     }

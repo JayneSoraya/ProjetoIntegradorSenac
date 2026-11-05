@@ -8,7 +8,7 @@ import {
   listarUsuarios,
   bloquearUsuario,
   listarProdutosAdmin,
-  corrigirCategoria,
+  atualizarProdutoAdmin,
 } from '../controllers/adminController';
 
 const router = Router();
@@ -27,6 +27,6 @@ router.patch('/usuarios/:id/bloquear',     bloquearUsuario);
 
 // ── Produtos ───────────────────────────────────────────────
 router.get('/produtos',                      listarProdutosAdmin);
-router.patch('/produtos/:id/categoria',      corrigirCategoria);
+router.patch('/produtos/:id',              atualizarProdutoAdmin );
 
 export default router;

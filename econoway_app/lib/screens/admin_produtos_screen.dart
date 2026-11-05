@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 
 class AdminProdutosScreen extends StatefulWidget {
   const AdminProdutosScreen({super.key});
@@ -12,8 +13,6 @@ class AdminProdutosScreen extends StatefulWidget {
 }
 
 class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
-  static const String _baseUrl = 'http://localhost:3333/api/admin';
-
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
   final _buscaCtrl = TextEditingController();
@@ -53,9 +52,11 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
   Future<void> _carregar({String busca = ''}) async {
     setState(() => _carregando = true);
     try {
-      final uri = Uri.parse(
-        '$_baseUrl/produtos',
-      ).replace(queryParameters: busca.isNotEmpty ? {'busca': busca} : null);
+      final url = AppConfig.endpoint('/admin/produtos');
+      final uri = url.replace(
+        queryParameters: busca.isNotEmpty ? {'busca': busca} : null,
+      );
+
       final response = await http.get(uri, headers: await _headers);
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
@@ -69,23 +70,82 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
     }
   }
 
-  Future<void> _corrigirCategoria(int idProduto, String categoriaAtual) async {
-    String selecionada = categoriaAtual;
+  Future<void> _editarProduto(Map<String, dynamic> produto) async {
+    final idProduto = produto['id_produto'];
+
+    final nomeCtrl = TextEditingController(text: produto['nome_produto'] ?? '');
+    final marcaCtrl = TextEditingController(text: produto['marca'] ?? '');
+    final pesoCtrl = TextEditingController(
+      text: produto['peso']?.toString() ?? '',
+    );
+    final unidadeCtrl = TextEditingController(
+      text: produto['unidade_medida'] ?? '',
+    );
+
+    String categoriaSelecionada = produto['categoria'] ?? 'Outros';
+    if (!_categorias.contains(categoriaSelecionada)) {
+      categoriaSelecionada = 'Outros';
+    }
 
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Corrigir categoria'),
-        content: StatefulBuilder(
-          builder: (_, setS) => DropdownButton<String>(
-            value: _categorias.contains(selecionada)
-                ? selecionada
-                : _categorias.last,
-            isExpanded: true,
-            items: _categorias
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
-            onChanged: (v) => setS(() => selecionada = v!),
+        title: const Text('Editar Produto'),
+        content: SingleChildScrollView(
+          child: StatefulBuilder(
+            builder: (_, setS) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nomeCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Produto',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: marcaCtrl,
+                  decoration: const InputDecoration(labelText: 'Marca'),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: categoriaSelecionada,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: 'Categoria'),
+                  items: _categorias
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (v) => setS(() => categoriaSelecionada = v!),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: pesoCtrl,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Peso / Qtd',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: unidadeCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Unidade (KG, L, etc)',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -95,16 +155,29 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              final url = AppConfig.endpoint('/admin/produtos/$idProduto');
               await http.patch(
-                Uri.parse('$_baseUrl/produtos/$idProduto/categoria'),
+                url,
                 headers: await _headers,
-                body: jsonEncode({'categoria': selecionada}),
+                body: jsonEncode({
+                  'nome_produto': nomeCtrl.text,
+                  'marca': marcaCtrl.text.isEmpty ? null : marcaCtrl.text,
+                  'categoria': categoriaSelecionada,
+                  'peso': pesoCtrl.text.isEmpty
+                      ? null
+                      : double.tryParse(pesoCtrl.text.replaceAll(',', '.')),
+                  'unidade_medida': unidadeCtrl.text.isEmpty
+                      ? null
+                      : unidadeCtrl.text.toUpperCase(),
+                }),
               );
               if (!mounted) return;
               Navigator.pop(context);
               _carregar(busca: _buscaCtrl.text);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Categoria atualizada!')),
+                const SnackBar(
+                  content: Text('Produto atualizado com sucesso!'),
+                ),
               );
             },
             child: const Text('Salvar'),
@@ -248,7 +321,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${p['total_mercados'] ?? 0} mercados · R\$ ${(p['menor_preco'] ?? 0).toStringAsFixed(2)}',
+                                '${p['total_mercados'] ?? 0} mercados · R\$ ${(double.tryParse(p['menor_preco']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 11,
                                   color: Colors.grey,
@@ -262,8 +335,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
                               color: AppColors.primary,
                               size: 20,
                             ),
-                            onPressed: () =>
-                                _corrigirCategoria(p['id_produto'], categoria),
+                            onPressed: () => _editarProduto(p),
                           ),
                         ),
                       );
