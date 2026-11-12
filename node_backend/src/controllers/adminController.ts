@@ -195,16 +195,29 @@ export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
   const { nome_produto, marca, categoria, peso, unidade_medida } = req.body;
 
   try {
+    const nomeNormalizado = nome_produto ? nome_produto.trim().toUpperCase() : null;
+
     await pool.query(
       `UPDATE produto 
        SET nome_produto = $1, 
-           marca = $2, 
-           categoria = $3, 
-           peso = $4, 
-           unidade_medida = $5, 
-           status_enriquecimento = 'CONCLUIDO' 
-       WHERE id_produto = $6`,
-      [nome_produto, marca || null, categoria, peso || null, unidade_medida || null, id]
+           nome_normalizado = $2, 
+           marca = $3, 
+           categoria = $4, 
+           peso = $5, 
+           unidade_medida = $6, 
+           status_enriquecimento = 'CONCLUIDO',
+           data_enriquecimento = NOW(),
+           enriquecido = TRUE
+       WHERE id_produto = $7`,
+      [
+        nome_produto, 
+        nomeNormalizado, 
+        marca || null, 
+        categoria, 
+        peso || null, 
+        unidade_medida || null, 
+        id
+      ]
     );
 
     return res.status(200).json({ mensagem: 'Produto atualizado com sucesso!' });

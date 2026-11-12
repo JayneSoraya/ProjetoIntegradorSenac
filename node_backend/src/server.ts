@@ -14,15 +14,17 @@ import progressoRoutes from './routes/progressoRoutes';
 import { reprocessarNotasContingencia } from './services/contingenciaService';
 import { logger } from './utils/logger';
 import { autenticar } from './middleware/authMiddleware';
+import { apiLimiter } from './middleware/rateLimitMiddleware';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3333;
 
-// ── Middlewares Globais (Devem vir antes das rotas) ──
+// ── Middlewares Globais ──
 app.use(cors());
 app.use(express.json());
+app.use('/api/', apiLimiter);
 
 // ── Agendamento (Cron Job) ─────────────────────
 cron.schedule('0 */2 * * *', () => {

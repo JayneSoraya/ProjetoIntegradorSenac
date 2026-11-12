@@ -34,6 +34,77 @@ function classificarProduto(nome: string): string {
   return 'Não classificado';
 }
 
+async function processarItemNota(
+  client: any,
+  idNota: number,
+  idSupermercado: number,
+  item: { nome: string; codigo: string; preco: number; quantidade: number; unidade: string }
+): Promise<string> {
+  const nomeOriginal = item.nome;
+  const nomeNormalizado = ProdutoService.normalizarNome(nomeOriginal);
+  const categoria = classificarProduto(nomeNormalizado);
+  const medida = ProdutoService.extrairMedida(nomeNormalizado);
+  
+  const precisaRevisao = categoria === 'Não classificado';
+  const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
+  const dataEnriquecimento = statusEnriquecimento === 'CONCLUIDO' ? new Date() : null;
+  const isEnriquecido = statusEnriquecimento === 'CONCLUIDO';
+
+  const prodExiste = await client.query(
+    'SELECT id_produto FROM produto WHERE codigo_barras = $1',
+    [item.codigo]
+  );
+
+  let idProduto: number;
+  if (prodExiste.rows.length > 0) {
+    idProduto = prodExiste.rows[0].id_produto;
+    
+    await client.query(
+      `UPDATE produto 
+       SET nome_normalizado = COALESCE(nome_normalizado, $1)
+       WHERE id_produto = $2`,
+      [nomeNormalizado, idProduto]
+    );
+  } else {
+
+    const novoProd = await client.query(
+    `INSERT INTO produto (
+      codigo_barras, nome_produto, nome_original, nome_normalizado, categoria, 
+      peso, unidade_medida, status_enriquecimento, data_enriquecimento, enriquecido
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id_produto`,
+    [
+      item.codigo,
+      nomeNormalizado,
+      nomeOriginal,
+      nomeNormalizado,
+      categoria,
+      medida?.quantidade ?? null,
+      medida?.unidade ?? null,
+      statusEnriquecimento,
+      dataEnriquecimento,
+      isEnriquecido
+    ]
+  );
+    idProduto = novoProd.rows[0].id_produto;
+  }
+
+  await client.query(
+    `INSERT INTO nota_item (id_nota, id_produto, quantidade, unidade, valor_unitario) 
+     VALUES ($1, $2, $3, $4, $5)`,
+    [idNota, idProduto, item.quantidade, item.unidade, item.preco]
+  );
+
+  await client.query(
+    `INSERT INTO oferta_supermercado (id_supermercado, id_produto, preco_atual, data_atualizacao)
+     VALUES ($1, $2, $3, NOW())
+     ON CONFLICT (id_supermercado, id_produto)
+     DO UPDATE SET preco_atual = $3, data_atualizacao = NOW()`,
+    [idSupermercado, idProduto, item.preco]
+  );
+
+  return item.nome;
+}
+
 export async function processarNotaPorUrl(url_qrcode: string, id_usuario: number, idNotaExistente?: number) {
   let chaveNfceFallback = '';
   let valorTotalFallback = 0;
@@ -167,57 +238,9 @@ export async function processarNotaPorUrl(url_qrcode: string, id_usuario: number
 
   const produtosSalvos: string[] = [];
 
-  for (const item of itensDaNota) {
-    let idProduto: number;
-    const nomeOriginal = item.nome; 
-    const nomeNormalizado = ProdutoService.normalizarNome(nomeOriginal);
-    const medida = ProdutoService.extrairMedida(nomeOriginal);
-    const categoria = classificarProduto(nomeOriginal);
-    const precisaRevisao = categoria === 'Não classificado';
-    const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
-    
-    logger.info(`PRODUTO: ${nomeOriginal} | MEDIDA: ${JSON.stringify(medida)} | STATUS: ${statusEnriquecimento}`);
-
-    const prodExiste = await pool.query(
-      'SELECT id_produto FROM produto WHERE codigo_barras = $1',
-      [item.codigo]
-    );
-
-    if (prodExiste.rows.length > 0) {
-      idProduto = prodExiste.rows[0].id_produto;
-    } else {
-      const novoProd = await pool.query(
-        `INSERT INTO produto (
-          codigo_barras, nome_produto, nome_original, categoria, 
-          peso, unidade_medida, status_enriquecimento, enriquecido
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE) RETURNING id_produto`,
-        [
-          item.codigo,
-          nomeNormalizado,
-          nomeOriginal,
-          categoria,
-          medida?.quantidade ?? null,
-          medida?.unidade ?? null,
-          statusEnriquecimento
-        ]
-      );
-      idProduto = novoProd.rows[0].id_produto;
-    }
-
-    await pool.query(
-      `INSERT INTO nota_item (id_nota, id_produto, quantidade, unidade, valor_unitario) VALUES ($1, $2, $3, $4, $5)`,
-      [idNota, idProduto, item.quantidade, item.unidade, item.preco]
-    );
-
-    await pool.query(
-      `INSERT INTO oferta_supermercado (id_supermercado, id_produto, preco_atual, data_atualizacao)
-       VALUES ($1, $2, $3, NOW())
-       ON CONFLICT (id_supermercado, id_produto)
-       DO UPDATE SET preco_atual = $3, data_atualizacao = NOW()`,
-      [idSupermercado, idProduto, item.preco]
-    );
-
-    produtosSalvos.push(item.nome);
+ for (const item of itensDaNota) {
+    const nomeSalvo = await processarItemNota(pool, idNota, idSupermercado, item);
+    produtosSalvos.push(nomeSalvo);
   }
 
   await pool.query('COMMIT');
@@ -327,46 +350,9 @@ export async function processarHtmlSefazManual(htmlContent: string, id_usuario: 
 
  const produtosSalvos: string[] = [];
 
-  for (const item of itensDaNota) {
-    let idProduto: number;
-    const nomeOriginal = item.nome;
-    const categoria = classificarProduto(nomeOriginal); 
-    const medida = ProdutoService.extrairMedida(nomeOriginal);
-    const precisaRevisao = categoria === 'Não classificado';
-    const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
-
-    const prodExiste = await pool.query(
-      'SELECT id_produto FROM produto WHERE codigo_barras = $1',
-      [item.codigo]
-    );
-
-    if (prodExiste.rows.length > 0) {
-      idProduto = prodExiste.rows[0].id_produto;
-    } else {
-      const novoProd = await pool.query(
-        `INSERT INTO produto (
-          codigo_barras, nome_produto, nome_original, categoria, 
-          peso, unidade_medida, status_enriquecimento, enriquecido
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE) RETURNING id_produto`,
-        [
-          item.codigo,
-          nomeOriginal,
-          nomeOriginal,
-          categoria,
-          medida?.quantidade ?? null,
-          medida?.unidade ?? null,
-          statusEnriquecimento
-        ]
-      );
-      idProduto = novoProd.rows[0].id_produto;
-    }
-
-    await pool.query(
-      `INSERT INTO nota_item (id_nota, id_produto, quantidade, unidade, valor_unitario) VALUES ($1, $2, $3, $4, $5)`,
-      [idNotaExistente, idProduto, item.quantidade, item.unidade, item.preco]
-    );
-
-    produtosSalvos.push(item.nome);
+ for (const item of itensDaNota) {
+    const nomeSalvo = await processarItemNota(pool, idNotaExistente, idSupermercado, item);
+    produtosSalvos.push(nomeSalvo);
   }
 
   await pool.query('COMMIT');

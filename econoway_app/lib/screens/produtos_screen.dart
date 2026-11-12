@@ -46,12 +46,12 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
       if (!mounted) return;
       setState(() => carregando = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao carregar produtos')),
+        const SnackBar(content: Text('Erro ao carregar produtos do banco')),
       );
     }
   }
 
-  // ── Carrinho ───────────────────────────────────────────────
+  // Carrinho
   int quantidadeProduto(int idProduto) {
     try {
       return carrinho.itens
@@ -85,11 +85,15 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
     setState(() {});
   }
 
-  // ── Build ──────────────────────────────────────────────────
+  // Build
   @override
   Widget build(BuildContext context) {
     if (carregando) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      );
     }
 
     final filtrados = produtos.where((p) {
@@ -102,13 +106,14 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
           (p.marca ?? '').toLowerCase().contains(textoBusca.toLowerCase());
       return categoriaOk && buscaOk;
     }).toList();
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // ── Cabeçalho ──────────────────────────────────
+              // Cabeçalho
               Row(
                 children: [
                   IconButton(
@@ -135,7 +140,6 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                           );
 
                           if (!mounted) return;
-
                           setState(() {});
                         },
                       ),
@@ -154,6 +158,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
@@ -165,7 +170,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
 
               const SizedBox(height: 16),
 
-              // ── Busca ───────────────────────────────────────
+              // Busca
               TextField(
                 onChanged: (v) => setState(() => textoBusca = v),
                 decoration: InputDecoration(
@@ -185,7 +190,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
 
               const SizedBox(height: 16),
 
-              // ── Categorias ──────────────────────────────────
+              // Categorias
               SizedBox(
                 height: 42,
                 child: ListView(
@@ -206,47 +211,59 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
               ),
 
               const SizedBox(height: 16),
-
-              // ── Lista ──────────────────────────────────────
+              // Lista de produtos
               Expanded(
-                child: filtrados.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: carregarProdutos,
+                  child: filtrados.isEmpty
+                      ? ListView(
                           children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Nenhum produto encontrado',
-                              style: TextStyle(color: Colors.grey),
+                            const SizedBox(height: 100),
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 64,
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Nenhum produto encontrado',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: filtrados.length,
-                        itemBuilder: (_, index) {
-                          final produto = filtrados[index];
-                          final qtd = quantidadeProduto(produto.idProduto);
+                        )
+                      : ListView.builder(
+                          itemCount: filtrados.length,
+                          itemBuilder: (_, index) {
+                            final produto = filtrados[index];
+                            final qtd = quantidadeProduto(produto.idProduto);
 
-                          return ProdutoCard(
-                            nome: produto.nomeProduto,
-                            marca: produto.marca ?? '',
-                            peso: produto.peso.toString(),
-                            preco: produto.preco,
-                            quantidade: qtd,
-                            onAdicionar: () => adicionarProduto(produto),
-                            onRemover: () => removerProduto(produto),
-                          );
-                        },
-                      ),
+                            final pesoStr = produto.peso > 0
+                                ? '${produto.peso} ${produto.unidadeMedida}'
+                                : '';
+
+                            return ProdutoCard(
+                              nome: produto.nomeProduto,
+                              marca: produto.marca ?? '',
+                              peso: pesoStr.trim(),
+                              preco: produto.preco,
+                              quantidade: qtd,
+                              onAdicionar: () => adicionarProduto(produto),
+                              onRemover: () => removerProduto(produto),
+                            );
+                          },
+                        ),
+                ),
               ),
 
-              // ── Rodapé ──────────────────────────────────────
+              // Rodapé
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
