@@ -6,9 +6,13 @@ export class ProdutoController {
 
   // RF05 — Busca por nome/marca e categoria
   buscar = async (req: Request, res: Response) => {
-    const { busca, categoria } = req.query;
+    const { busca, categoria, page = '1', limit = '50' } = req.query;
 
     try {
+      const pageNumber = Math.max(1, parseInt(page as string, 10) || 1);
+      const limitNumber = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 50));
+      const offset = (pageNumber - 1) * limitNumber;
+
       let sql = `
         SELECT
           p.id_produto,
@@ -26,7 +30,7 @@ export class ProdutoController {
         WHERE 1=1
       `;
 
-      const params: string[] = [];
+      const params: any[] = [];
       let i = 1;
 
       if (busca) {
@@ -53,11 +57,14 @@ export class ProdutoController {
           p.categoria,
           p.peso,
           p.unidade_medida
-        ORDER BY p.nome_produto ASC
-        LIMIT 50
+        ORDER BY p.id_produto ASC
+        LIMIT $${i} OFFSET $${i + 1}
       `;
 
+      params.push(limitNumber, offset);
+
       const resultado = await pool.query(sql, params);
+
       return res.status(200).json(resultado.rows);
 
     } catch (erro) {

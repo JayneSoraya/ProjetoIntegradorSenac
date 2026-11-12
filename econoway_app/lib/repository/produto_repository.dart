@@ -19,9 +19,14 @@ class ProdutoRepository implements IProdutoRepository {
   Future<List<ProdutoDTO>> buscarProduto(
     String pesquisa, {
     String categoria = '',
+    int page = 1,
+    int limit = 50,
   }) async {
     try {
-      final params = <String, String>{};
+      final params = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
       if (pesquisa.isNotEmpty) params['busca'] = pesquisa;
       if (categoria.isNotEmpty && categoria != 'Todos') {
         params['categoria'] = categoria;
@@ -30,8 +35,11 @@ class ProdutoRepository implements IProdutoRepository {
       final uri = AppConfig.endpoint(
         'produtos',
       ).replace(queryParameters: params);
+      print('🌐 [APP] A chamar URL: $uri');
       final response = await http.get(uri, headers: await _headers);
 
+      print('🌐 [APP] Status Code recebido: ${response.statusCode}');
+      print('🌐 [APP] Corpo da resposta: ${response.body}');
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         return data.map((json) => ProdutoDTO.fromJson(json)).toList();
@@ -60,6 +68,7 @@ class ProdutoRepository implements IProdutoRepository {
         throw Exception('Erro ao buscar detalhe: ${response.statusCode}');
       }
     } catch (e) {
+      print('❌ [APP] Erro capturado no repositório: $e');
       throw Exception('Erro na conexão com o servidor');
     }
   }
