@@ -12,6 +12,7 @@ import {
 } from '../controllers/adminController';
 
 const router = Router();
+console.log('ENTROU NO CONTROLLER');
 
 router.use(autenticar, apenasAdmin);
 
@@ -27,6 +28,6 @@ router.patch('/usuarios/:id/bloquear',     bloquearUsuario);
 
 // ── Produtos ───────────────────────────────────────────────
 router.get('/produtos',                      listarProdutosAdmin);
-router.patch('/produtos/:id',              atualizarProdutoAdmin );
+router.put('/produtos/:id',              atualizarProdutoAdmin );
 
 export default router;

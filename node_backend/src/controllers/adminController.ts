@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { pool } from '../database';
 import { logger } from '../utils/logger';
+import { obterPlaceholderPorCategoria } from '../utils/imagemUtils';
 
-// ── GET /api/admin/mercados ────────────────────────────────
+// -- GET /api/admin/mercados --------------------------------
 export const listarMercados = async (req: Request, res: Response) => {
   try {
     const resultado = await pool.query(`
@@ -22,13 +23,13 @@ export const listarMercados = async (req: Request, res: Response) => {
     `);
     return res.status(200).json(resultado.rows);
   } catch (erro) {
-    logger.error(`❌ Erro ao listar mercados: ${
-      erro instanceof Error? erro.message: String(erro)}`);
+    logger.error(`? Erro ao listar mercados: ${
+      erro instanceof Error ? erro.message : String(erro)}`);
     return res.status(500).json({ erro: 'Erro ao buscar mercados.' });
   }
 };
 
-// ── POST /api/admin/mercados ───────────────────────────────
+// -- POST /api/admin/mercados -------------------------------
 export const cadastrarMercado = async (req: Request, res: Response) => {
   const { cnpj, nome_fantasia, endereco_completo } = req.body;
 
@@ -45,15 +46,15 @@ export const cadastrarMercado = async (req: Request, res: Response) => {
     return res.status(201).json(resultado.rows[0]);
   } catch (erro) {
     logger.error(
-    `❌ Erro ao cadastrar mercado: ${
-      erro instanceof Error ? erro.message : String(erro)
-    }`
-  );
+      `? Erro ao cadastrar mercado: ${
+        erro instanceof Error ? erro.message : String(erro)
+      }`
+    );
     return res.status(500).json({ erro: 'Erro ao cadastrar mercado.' });
   }
 };
 
-// ── PUT /api/admin/mercados/:id ────────────────────────────
+// -- PUT /api/admin/mercados/:id ----------------------------
 export const editarMercado = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { nome_fantasia, endereco_completo, esta_aberto } = req.body;
@@ -73,7 +74,7 @@ export const editarMercado = async (req: Request, res: Response) => {
   }
 };
 
-// ── DELETE /api/admin/mercados/:id ─────────────────────────
+// -- DELETE /api/admin/mercados/:id -------------------------
 export const removerMercado = async (req: Request, res: Response) => {
   const { id } = req.params;
   try {
@@ -86,7 +87,7 @@ export const removerMercado = async (req: Request, res: Response) => {
   }
 };
 
-// ── GET /api/admin/usuarios ────────────────────────────────
+// -- GET /api/admin/usuarios --------------------------------
 export const listarUsuarios = async (req: Request, res: Response) => {
   const { busca } = req.query;
   try {
@@ -121,19 +122,24 @@ export const listarUsuarios = async (req: Request, res: Response) => {
              c.data_cadastro, c.ultimo_login, u.id_usuario,
              u.saldo_receita, u.aceita_lgpd
              ORDER BY c.nome`;
-
+console.log(sql);
     const resultado = await pool.query(sql, params);
+    console.log(
+  'PRODUTOS ENCONTRADOS:',
+  resultado.rows.length
+);
     return res.status(200).json(resultado.rows);
   } catch (erro) {
     logger.error(
-    `❌ Erro ao listar usuários: ${
-      erro instanceof Error ? erro.message : String(erro)
-    }`
-  );
+      `? Erro ao listar usuários: ${
+        erro instanceof Error ? erro.message : String(erro)
+      }`
+    );
     return res.status(500).json({ erro: 'Erro ao buscar usuários.' });
   }
 };
 
+// -- PATCH /api/admin/usuarios/:id/bloquear -----------------
 export const bloquearUsuario = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { bloquear } = req.body; 
@@ -150,53 +156,125 @@ export const bloquearUsuario = async (req: Request, res: Response) => {
   }
 };
 
+// -- GET /api/admin/produtos --------------------------------
 export const listarProdutosAdmin = async (req: Request, res: Response) => {
-  const { busca, categoria } = req.query;
+  const { busca, categoria, status_enriquecimento, status_imagem, pagina = 1, limite = 20 } = req.query;
+
   try {
+    const offset = (Number(pagina) - 1) * Number(limite);
+
+    // 1. Contadores de backlog para os chips da interface
+    const contadoresQuery = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE status_enriquecimento = 'PENDENTE') AS pendente,
+        COUNT(*) FILTER (WHERE status_enriquecimento = 'ENRIQUECIDO') AS enriquecido,
+        COUNT(*) FILTER (WHERE status_enriquecimento = 'CONCLUIDO') AS concluido,
+        COUNT(*) FILTER (WHERE imagem_url IS NULL OR imagem_status = 'PENDENTE') AS sem_imagem,
+        COUNT(*) FILTER (WHERE imagem_url IS NOT NULL AND imagem_status = 'CONCLUIDO') AS com_imagem,
+        COUNT(*) AS total_geral
+      FROM produto
+    `);
+
+    // 2. Query principal com dados de oferta e rastreabilidade da NFC-e
     let sql = `
       SELECT
         p.id_produto,
         p.codigo_barras,
+        p.nome_original,
         p.nome_produto,
         p.marca,
         p.categoria,
         p.peso,
         p.unidade_medida,
-        COUNT(o.id_supermercado) AS total_mercados,
+        p.status_enriquecimento,
+        p.imagem_url,
+        p.imagem_status,
+        COUNT(DISTINCT o.id_supermercado) AS total_mercados,
         MIN(o.preco_atual) AS menor_preco,
-        MAX(o.preco_atual) AS maior_preco
+        MAX(o.preco_atual) AS maior_preco,
+        (SELECT COUNT(DISTINCT ni.id_nota) FROM nota_item ni WHERE ni.id_produto = p.id_produto) AS total_notas,
+        (SELECT MIN(n.data_compra) FROM nota_item ni JOIN nota_fiscal n ON ni.id_nota = n.id_nota WHERE ni.id_produto = p.id_produto) AS primeira_ocorrencia_data,
+        (SELECT MIN(n.id_nota) FROM nota_item ni JOIN nota_fiscal n ON ni.id_nota = n.id_nota WHERE ni.id_produto = p.id_produto) AS primeira_ocorrencia_id_nota,
+        (SELECT MAX(n.data_compra) FROM nota_item ni JOIN nota_fiscal n ON ni.id_nota = n.id_nota WHERE ni.id_produto = p.id_produto) AS ultima_ocorrencia_data,
+        (SELECT MAX(n.id_nota) FROM nota_item ni JOIN nota_fiscal n ON ni.id_nota = n.id_nota WHERE ni.id_produto = p.id_produto) AS ultima_ocorrencia_id_nota,
+        (SELECT n.chave_nfce FROM nota_item ni JOIN nota_fiscal n ON ni.id_nota = n.id_nota WHERE ni.id_produto = p.id_produto ORDER BY n.data_compra DESC LIMIT 1) AS ultima_chave_nfce
       FROM produto p
       LEFT JOIN oferta_supermercado o ON o.id_produto = p.id_produto
       WHERE 1=1
     `;
-    const params: string[] = [];
+
+    const params: any[] = [];
     let i = 1;
 
     if (busca) {
-      sql += ` AND (LOWER(p.nome_produto) LIKE LOWER($${i}) OR LOWER(p.marca) LIKE LOWER($${i}))`;
-      params.push(`%${busca}%`); i++;
+      sql += ` AND (LOWER(p.nome_produto) LIKE LOWER($${i}) OR LOWER(p.marca) LIKE LOWER($${i}) OR p.codigo_barras LIKE LOWER($${i}))`;
+      params.push(`%${busca}%`);
+      i++;
     }
+
     if (categoria && categoria !== 'Todos') {
       sql += ` AND p.categoria = $${i}`;
       params.push(categoria as string);
+      i++;
     }
 
-    sql += ` GROUP BY p.id_produto ORDER BY p.nome_produto LIMIT 100`;
+    if (status_enriquecimento && status_enriquecimento !== 'Todos') {
+      sql += ` AND p.status_enriquecimento = $${i}`;
+      params.push(status_enriquecimento as string);
+      i++;
+    }
+
+    if (status_imagem === 'sem_imagem') {
+      sql += ` AND (p.imagem_url IS NULL OR p.imagem_status = 'PENDENTE')`;
+    } else if (status_imagem === 'com_imagem') {
+      sql += ` AND (p.imagem_url IS NOT NULL AND p.imagem_status = 'CONCLUIDO')`;
+    }
+
+    sql += ` GROUP BY p.id_produto ORDER BY p.id_produto DESC LIMIT $${i++} OFFSET $${i++}`;
+    params.push(limite, offset);
 
     const resultado = await pool.query(sql, params);
-    return res.status(200).json(resultado.rows);
+
+    // Injeta a URL de fallback do Cloudinary via src/utils/imagemUtils.ts
+    const produtosFormatados = resultado.rows.map((prod) => ({
+      ...prod,
+      imagem_exibicao: prod.imagem_url || obterPlaceholderPorCategoria(prod.categoria),
+    }));
+
+    return res.status(200).json({
+      contadores: contadoresQuery.rows[0],
+      produtos: produtosFormatados,
+    });
   } catch (erro) {
+    logger.error(
+      `Erro ao buscar produtos admin: ${
+        erro instanceof Error ? erro.message : String(erro)
+      }`
+    );
     return res.status(500).json({ erro: 'Erro ao buscar produtos.' });
   }
 };
 
+// -- PUT /api/admin/produtos/:id ----------------------------
 export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { nome_produto, marca, categoria, peso, unidade_medida } = req.body;
+    console.log('ENTROU atualizarProdutoAdmin');
 
+  const { id } = req.params;
+  console.log('ID', id);
+console.log(req.body);
+const {
+  nome_produto,
+  marca,
+  categoria,
+  peso,
+  unidade_medida,
+  imagem_url,
+  status_enriquecimento
+} = req.body;
   try {
     const nomeNormalizado = nome_produto ? nome_produto.trim().toUpperCase() : null;
-
+    const statusImagemNovo = imagem_url ? 'CONCLUIDO' : 'PENDENTE';
+    console.log('ANTES UPDATE');
     await pool.query(
       `UPDATE produto 
        SET nome_produto = $1, 
@@ -205,28 +283,42 @@ export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
            categoria = $4, 
            peso = $5, 
            unidade_medida = $6, 
-           status_enriquecimento = 'CONCLUIDO',
+           imagem_url = COALESCE($7, imagem_url),
+           imagem_status = $8,
+           status_enriquecimento = $9,
            data_enriquecimento = NOW(),
            enriquecido = TRUE
-       WHERE id_produto = $7`,
+       WHERE id_produto = $10`,
       [
-        nome_produto, 
-        nomeNormalizado, 
-        marca || null, 
-        categoria, 
-        peso || null, 
-        unidade_medida || null, 
-        id
+        nome_produto,
+        nomeNormalizado,
+        marca || null,
+        categoria,
+        peso || null,
+        unidade_medida || null,
+        imagem_url || null,
+        statusImagemNovo,
+        status_enriquecimento,
+        id,
       ]
     );
-
+    console.log('BODY', req.body);
+console.log('STATUS', status_enriquecimento);
+console.log('DEPOIS UPDATE');
     return res.status(200).json({ mensagem: 'Produto atualizado com sucesso!' });
   } catch (erro) {
-    logger.error(
-      `Erro ao atualizar produto: ${
-        erro instanceof Error ? erro.message : String(erro)
-      }`
-    );
-    return res.status(500).json({ erro: 'Erro ao atualizar produto.' });
-  }
+  console.error(erro);
+
+  logger.error(
+    `Erro ao atualizar produto: ${
+      erro instanceof Error
+        ? erro.message
+        : String(erro)
+    }`
+  );
+
+  return res.status(500).json({
+    erro: 'Erro ao atualizar produto.',
+  });
+}
 };

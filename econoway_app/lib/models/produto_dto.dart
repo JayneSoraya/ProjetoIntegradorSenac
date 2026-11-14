@@ -9,6 +9,7 @@ class ProdutoDTO {
   final double variacaoPreco;
   final double precoMedio;
   final String unidadeMedida;
+  final String? imagemUrl;
 
   ProdutoDTO({
     required this.idProduto,
@@ -21,6 +22,7 @@ class ProdutoDTO {
     required this.variacaoPreco,
     required this.precoMedio,
     required this.unidadeMedida,
+    this.imagemUrl,
   });
 
   factory ProdutoDTO.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class ProdutoDTO {
 
       peso: double.tryParse(json['peso']?.toString() ?? '0') ?? 0.0,
       unidadeMedida: json['unidade_medida']?.toString() ?? '',
+      imagemUrl: json['imagem_url']?.toString(),
     );
   }
 }

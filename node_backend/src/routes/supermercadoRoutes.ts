@@ -4,28 +4,10 @@ import { autenticar } from '../middleware/authMiddleware';
 
 const router = Router();
 
-const supermercadoController =
-    new SupermercadoController();
-
-router.post('/', supermercadoController.criar);
-
-router.get('/', supermercadoController.listar);
-
-router.get(
-  '/meu-perfil',
-  autenticar,
-  supermercadoController.meuPerfil.bind(
-    supermercadoController
-  )
-);
-
-
-router.put(
-  '/:id',
-  autenticar,
-  supermercadoController.atualizar.bind(
-    supermercadoController
-  )
-);
+// Rotas limpas e seguras baseadas em métodos estáticos
+router.post('/', SupermercadoController.criar);
+router.get('/', SupermercadoController.listar);
+router.get('/meu-perfil', autenticar, SupermercadoController.meuPerfil);
+router.put('/:id', autenticar, SupermercadoController.atualizar);
 
 export default router;

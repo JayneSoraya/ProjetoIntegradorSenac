@@ -94,7 +94,19 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
     final lista = [...mercados];
 
     if (filtro == 'Menor preço') {
-      lista.sort((a, b) => a.total.compareTo(b.total));
+      lista.sort((a, b) {
+        // Carrinhos completos vêm primeiro
+        if (a.carrinhoCompleto && !b.carrinhoCompleto) {
+          return -1;
+        }
+
+        if (!a.carrinhoCompleto && b.carrinhoCompleto) {
+          return 1;
+        }
+
+        // Dentro do mesmo grupo, ordenar por preço
+        return a.total.compareTo(b.total);
+      });
     }
 
     if (filtro == 'Melhor avaliação') {
@@ -183,7 +195,14 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
 
                   final selecionado = mercadoSelecionadoIndex == index;
 
-                  final maisBarato = filtro == 'Menor preço' && index == 0;
+                  final indiceMaisBarato = ordenados.indexWhere(
+                    (m) => m.carrinhoCompleto,
+                  );
+
+                  final maisBarato =
+                      filtro == 'Menor preço' &&
+                      index == indiceMaisBarato &&
+                      indiceMaisBarato != -1;
 
                   return Card(
                     child: ListTile(
@@ -197,7 +216,16 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                         children: [
                           Expanded(child: Text(mercado.nome)),
                           if (maisBarato)
-                            const Chip(label: Text('Mais barato')),
+                            Chip(
+                              backgroundColor: Colors.green,
+                              label: const Text(
+                                '🏆 Melhor oferta',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       subtitle: Column(

@@ -19,19 +19,30 @@ import { apiLimiter } from './middleware/rateLimitMiddleware';
 dotenv.config();
 
 const app = express();
+
+app.use((req, res, next) => {
+  console.log('REQ CHEGOU:', req.method, req.url);
+  next();
+});
+app.get('/ping', (req, res) => {
+  console.log('PING FUNCIONOU');
+  return res.end('pong');
+});
 const PORT = process.env.PORT || 3333;
 
-// ── Middlewares Globais ──
+// -- Middlewares Globais --
 app.use(cors());
 app.use(express.json());
-app.use('/api/', apiLimiter);
+//app.use('/api/', apiLimiter);
 
-// ── Agendamento (Cron Job) ─────────────────────
-cron.schedule('0 */2 * * *', () => {
-  reprocessarNotasContingencia();
-});
+// -- Agendamento (Cron Job) ---------------------
+if (process.env.NODE_ENV !== 'test') {
+  cron.schedule('0 */2 * * *', () => {
+    reprocessarNotasContingencia();
+  });
+}
 
-// ── Rota Manual de Contingência ────────────────
+// -- Rota Manual de Contingência ----------------
 app.post('/api/admin/reprocessar-contingencia', autenticar, async (req, res) => {
   try {
     await reprocessarNotasContingencia();
@@ -41,7 +52,7 @@ app.post('/api/admin/reprocessar-contingencia', autenticar, async (req, res) => 
   }
 });
 
-// ── Registro de Rotas da API ───────────────────
+// -- Registro de Rotas da API -------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/notas', notaRoutes);
 app.use('/api/comparacao', comparacaoRoutes);
@@ -51,16 +62,22 @@ app.use('/api/supermercados', supermercadoRoutes);
 app.use('/api/produtos', produtoRoutes);
 app.use('/api/progresso', progressoRoutes);
 
-// ── Rota de Teste / Status ─────────────────────
+// -- Rota de Teste / Status ---------------------
 app.get('/api/status', (req, res) => {
-  logger.info("📱 Celular conectou na API");
+  logger.info("?? Celular conectou na API");
   res.json({ 
     status: "online", 
     mensagem: "API SaveMoney funcionando!" 
   });
 });
+// -- Exportação do App para testes --------------
+export default app;
 
-// ── Inicialização Única do Servidor ────────────
-app.listen(Number(PORT), '0.0.0.0', () => {
-  logger.info(`🚀 SaveMoney API rodando na porta ${PORT}`);
-});
+
+// -- Inicialização Única do Servidor (Apenas se não for teste) ------------
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    logger.info(`?? SaveMoney API rodando na porta ${PORT}`);
+  });
+}
+

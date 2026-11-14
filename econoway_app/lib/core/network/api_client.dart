@@ -51,21 +51,28 @@ class ApiClient {
     return _decode(response);
   }
 
-  static Future<dynamic> post(
+ static Future<dynamic> post(
     String path, {
     Object? body,
     bool authenticated = true,
     Duration timeout = defaultTimeout,
   }) async {
-    final response = await http
-        .post(
-          AppConfig.endpoint(path),
-          headers: await _headers(authenticated: authenticated),
-          body: body == null ? null : jsonEncode(body),
-        )
-        .timeout(timeout);
+    final uri = AppConfig.endpoint(path);
 
-    return _decode(response);
+    try {
+      final response = await http
+          .post(
+            uri,
+            headers: await _headers(authenticated: authenticated),
+            body: body == null ? null : jsonEncode(body),
+          )
+          .timeout(timeout);
+
+      return _decode(response);
+    } catch (_) {
+      //print('>>> [API_CLIENT STACKTRACE]: $stackTrace');
+      rethrow;
+    }
   }
 
   static Future<dynamic> put(

@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../core/config/app_config.dart';
+import 'admin_editar_produtos_screen.dart';
 
 class AdminProdutosScreen extends StatefulWidget {
   const AdminProdutosScreen({super.key});
@@ -16,18 +18,48 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
   List<Map<String, dynamic>> _produtos = [];
   bool _carregando = true;
   final _buscaCtrl = TextEditingController();
+  Timer? _debounce;
 
-  final List<String> _categorias = [
-    'Alimentos',
-    'Bebidas',
-    'Higiene e Limpeza',
-    'Carnes e Peixes',
-    'Laticínios',
-    'Snacks',
-    'Hortifruti',
-    'Padaria',
-    'Outros',
-  ];
+  String _filtroStatus = 'TODOS';
+  String _filtroImagem = 'TODAS';
+
+  // ── Helpers ────────────────────────────────────────────────
+  String _statusDe(Map<String, dynamic> p) =>
+      (p['status_enriquecimento'] ?? 'PENDENTE').toString();
+
+  bool _temImagem(Map<String, dynamic> p) =>
+      p['imagem_url'] != null && p['imagem_url'].toString().isNotEmpty;
+
+  // ── Contadores ─────────────────────────────────────────────
+  int get _totalPendentes =>
+      _produtos.where((p) => _statusDe(p) == 'PENDENTE').length;
+
+  int get _totalEnriquecidos =>
+      _produtos.where((p) => _statusDe(p) == 'ENRIQUECIDO').length;
+
+  int get _totalConcluidos =>
+      _produtos.where((p) => _statusDe(p) == 'CONCLUIDO').length;
+
+  int get _totalComImagem => _produtos.where(_temImagem).length;
+
+  int get _totalSemImagem => _produtos.length - _totalComImagem;
+
+  // ── Lista filtrada ─────────────────────────────────────────
+  List<Map<String, dynamic>> get _produtosFiltrados {
+    return _produtos.where((p) {
+      final passouStatus =
+          _filtroStatus == 'TODOS' || _statusDe(p) == _filtroStatus;
+
+      final possuiImagem = _temImagem(p);
+      final passouImagem = _filtroImagem == 'TODAS'
+          ? true
+          : _filtroImagem == 'COM_IMAGEM'
+          ? possuiImagem
+          : !possuiImagem;
+
+      return passouStatus && passouImagem;
+    }).toList();
+  }
 
   @override
   void initState() {
@@ -37,6 +69,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _buscaCtrl.dispose();
     super.dispose();
   }
@@ -54,137 +87,66 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
     try {
       final url = AppConfig.endpoint('/admin/produtos');
       final uri = url.replace(
-        queryParameters: busca.isNotEmpty ? {'busca': busca} : null,
+        queryParameters: {
+          if (busca.isNotEmpty) 'busca': busca,
+
+          if (_filtroStatus != 'TODOS') 'status_enriquecimento': _filtroStatus,
+
+          if (_filtroImagem == 'SEM_IMAGEM') 'status_imagem': 'sem_imagem',
+
+          if (_filtroImagem == 'COM_IMAGEM') 'status_imagem': 'com_imagem',
+
+          'pagina': '1',
+          'limite': '500',
+        },
       );
 
       final response = await http.get(uri, headers: await _headers);
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final produtos = List<Map<String, dynamic>>.from(
+          data['produtos'] ?? [],
+        );
+
         setState(() {
-          _produtos = data.cast<Map<String, dynamic>>();
+          _produtos = produtos;
           _carregando = false;
         });
+      } else {
+        setState(() => _carregando = false);
       }
     } catch (_) {
+      if (!mounted) return;
       setState(() => _carregando = false);
     }
   }
 
-  Future<void> _editarProduto(Map<String, dynamic> produto) async {
-    final idProduto = produto['id_produto'];
+  // Evita uma requisição a cada letra digitada
+  void _onBuscaChanged(String v) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      _carregar(busca: v);
+    });
+  }
 
-    final nomeCtrl = TextEditingController(text: produto['nome_produto'] ?? '');
-    final marcaCtrl = TextEditingController(text: produto['marca'] ?? '');
-    final pesoCtrl = TextEditingController(
-      text: produto['peso']?.toString() ?? '',
-    );
-    final unidadeCtrl = TextEditingController(
-      text: produto['unidade_medida'] ?? '',
-    );
-
-    String categoriaSelecionada = produto['categoria'] ?? 'Outros';
-    if (!_categorias.contains(categoriaSelecionada)) {
-      categoriaSelecionada = 'Outros';
-    }
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Editar Produto'),
-        content: SingleChildScrollView(
-          child: StatefulBuilder(
-            builder: (_, setS) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nomeCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Nome do Produto',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: marcaCtrl,
-                  decoration: const InputDecoration(labelText: 'Marca'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  value: categoriaSelecionada,
-                  isExpanded: true,
-                  decoration: const InputDecoration(labelText: 'Categoria'),
-                  items: _categorias
-                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                      .toList(),
-                  onChanged: (v) => setS(() => categoriaSelecionada = v!),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextField(
-                        controller: pesoCtrl,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        decoration: const InputDecoration(
-                          labelText: 'Peso / Qtd',
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 1,
-                      child: TextField(
-                        controller: unidadeCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Unidade (KG, L, etc)',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final url = AppConfig.endpoint('/admin/produtos/$idProduto');
-              await http.patch(
-                url,
-                headers: await _headers,
-                body: jsonEncode({
-                  'nome_produto': nomeCtrl.text,
-                  'marca': marcaCtrl.text.isEmpty ? null : marcaCtrl.text,
-                  'categoria': categoriaSelecionada,
-                  'peso': pesoCtrl.text.isEmpty
-                      ? null
-                      : double.tryParse(pesoCtrl.text.replaceAll(',', '.')),
-                  'unidade_medida': unidadeCtrl.text.isEmpty
-                      ? null
-                      : unidadeCtrl.text.toUpperCase(),
-                }),
-              );
-              if (!mounted) return;
-              Navigator.pop(context);
-              _carregar(busca: _buscaCtrl.text);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Produto atualizado com sucesso!'),
-                ),
-              );
-            },
-            child: const Text('Salvar'),
-          ),
-        ],
+  Future<void> _abrirEdicao(Map<String, dynamic> produto) async {
+    final atualizou = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminEditarProdutoScreen(produto: produto),
       ),
     );
+
+    if (atualizou == true) {
+      setState(() {
+        _filtroStatus = 'TODOS';
+        _filtroImagem = 'TODAS';
+      });
+
+      _carregar(busca: _buscaCtrl.text);
+    }
   }
 
   Color _corCategoria(String? cat) {
@@ -210,8 +172,185 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
     }
   }
 
+  String _labelStatus(String status) {
+    switch (status) {
+      case 'CONCLUIDO':
+        return '🟢 Concluído';
+      case 'ENRIQUECIDO':
+        return '🔵 Enriquecido';
+      default:
+        return '🟠 Pendente';
+    }
+  }
+
+  // ── Widgets auxiliares ─────────────────────────────────────
+  Widget _chipStatus(String label, String valor) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _filtroStatus == valor,
+      onSelected: (_) {
+        setState(() {
+          _filtroStatus = valor;
+        });
+
+        _carregar(busca: _buscaCtrl.text);
+      },
+    );
+  }
+
+  Widget _chipImagem(String label, String valor) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _filtroImagem == valor,
+      onSelected: (_) {
+        setState(() {
+          _filtroImagem = valor;
+        });
+
+        _carregar(busca: _buscaCtrl.text);
+      },
+    );
+  }
+
+  Widget _buildFiltros() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Status Enriquecimento',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              _chipStatus('Todos (${_produtos.length})', 'TODOS'),
+              _chipStatus('Pendente ($_totalPendentes)', 'PENDENTE'),
+              _chipStatus('Enriquecido ($_totalEnriquecidos)', 'ENRIQUECIDO'),
+              _chipStatus('Concluído ($_totalConcluidos)', 'CONCLUIDO'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Status Imagem',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              _chipImagem('Todas', 'TODAS'),
+              _chipImagem('Sem imagem ($_totalSemImagem)', 'SEM_IMAGEM'),
+              _chipImagem('Com imagem ($_totalComImagem)', 'COM_IMAGEM'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItem(Map<String, dynamic> p) {
+    final categoria = p['categoria'] as String? ?? 'Outros';
+    final cor = _corCategoria(categoria);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Container(
+          width: 8,
+          height: 50,
+          decoration: BoxDecoration(
+            color: cor,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        title: Text(
+          p['nome_produto'] ?? '',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Wrap(
+            spacing: 6,
+            children: [
+              Chip(
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                label: Text(
+                  _labelStatus(_statusDe(p)),
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+              Chip(
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                label: Text(
+                  _temImagem(p) ? '📷 Com imagem' : '⚪ Sem imagem',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+        children: [
+          ListTile(title: const Text('Categoria'), subtitle: Text(categoria)),
+          ListTile(
+            title: const Text('Código de Barras'),
+            subtitle: Text(p['codigo_barras'] ?? '-'),
+          ),
+          ListTile(
+            title: const Text('Marca'),
+            subtitle: Text(p['marca'] ?? '-'),
+          ),
+          ListTile(
+            title: const Text('Nome Original'),
+            subtitle: Text(p['nome_original'] ?? '-'),
+          ),
+          ListTile(
+            title: const Text('Peso'),
+            subtitle: Text('${p['peso'] ?? '-'} ${p['unidade_medida'] ?? ''}'),
+          ),
+          ListTile(
+            title: const Text('Mercados / Menor preço'),
+            subtitle: Text(
+              '${p['total_mercados'] ?? 0} mercados · R\$ ${(double.tryParse(p['menor_preco']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+            ),
+          ),
+          if (p['ultima_chave_nfce'] != null)
+            ListTile(
+              leading: const Icon(Icons.receipt),
+              title: const Text('Nota Fiscal de Origem'),
+              subtitle: Text(
+                p['ultima_chave_nfce'],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.edit),
+              label: const Text('Editar'),
+              onPressed: () => _abrirEdicao(p),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filtrados = _produtosFiltrados;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Produtos'),
@@ -231,7 +370,7 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _buscaCtrl,
-              onChanged: (v) => _carregar(busca: v),
+              onChanged: _onBuscaChanged,
               decoration: InputDecoration(
                 hintText: 'Buscar produto ou marca',
                 prefixIcon: const Icon(Icons.search, color: AppColors.primary),
@@ -245,14 +384,17 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
             ),
           ),
 
+          // ── Filtros ────────────────────────────────────────
+          _buildFiltros(),
+
           // ── Contador ───────────────────────────────────────
           if (!_carregando)
             Padding(
-              padding: const EdgeInsets.only(left: 16, bottom: 8),
+              padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  '${_produtos.length} produtos',
+                  '${filtrados.length} de ${_produtos.length} produtos',
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
@@ -264,82 +406,12 @@ class _AdminProdutosScreenState extends State<AdminProdutosScreen> {
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   )
-                : _produtos.isEmpty
+                : filtrados.isEmpty
                 ? const Center(child: Text('Nenhum produto encontrado.'))
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _produtos.length,
-                    itemBuilder: (_, i) {
-                      final p = _produtos[i];
-                      final categoria = p['categoria'] as String? ?? 'Outros';
-                      final cor = _corCategoria(categoria);
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            width: 8,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: cor,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          title: Text(
-                            p['nome_produto'] ?? '',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: cor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  categoria,
-                                  style: TextStyle(
-                                    color: cor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${p['total_mercados'] ?? 0} mercados · R\$ ${(double.tryParse(p['menor_preco']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.edit_outlined,
-                              color: AppColors.primary,
-                              size: 20,
-                            ),
-                            onPressed: () => _editarProduto(p),
-                          ),
-                        ),
-                      );
-                    },
+                    itemCount: filtrados.length,
+                    itemBuilder: (_, i) => _buildItem(filtrados[i]),
                   ),
           ),
         ],

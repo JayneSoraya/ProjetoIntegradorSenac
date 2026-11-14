@@ -10,7 +10,7 @@ class ProdutoRepository implements IProdutoRepository {
     final token = await AuthService.getToken();
     return {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
@@ -27,7 +27,12 @@ class ProdutoRepository implements IProdutoRepository {
         'page': page.toString(),
         'limit': limit.toString(),
       };
-      if (pesquisa.isNotEmpty) params['busca'] = pesquisa;
+
+      final pesquisaTrimmed = pesquisa.trim();
+      if (pesquisaTrimmed.isNotEmpty) {
+        params['busca'] = pesquisaTrimmed;
+      }
+
       if (categoria.isNotEmpty && categoria != 'Todos') {
         params['categoria'] = categoria;
       }
@@ -35,19 +40,21 @@ class ProdutoRepository implements IProdutoRepository {
       final uri = AppConfig.endpoint(
         'produtos',
       ).replace(queryParameters: params);
-      print('🌐 [APP] A chamar URL: $uri');
+
       final response = await http.get(uri, headers: await _headers);
 
-      print('🌐 [APP] Status Code recebido: ${response.statusCode}');
-      print('🌐 [APP] Corpo da resposta: ${response.body}');
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
         return data.map((json) => ProdutoDTO.fromJson(json)).toList();
       } else {
-        throw Exception('Erro ao buscar produtos: ${response.statusCode}');
+        throw Exception(
+          'Erro ao buscar produtos (Código ${response.statusCode})',
+        );
       }
     } catch (e) {
-      throw Exception('Erro na conexão com o servidor');
+      // Se já for uma Exception tratada, repassa; senão, encapsula como erro de rede/conexão
+      if (e is Exception) rethrow;
+      throw Exception('Erro na conexão com o servidor: $e');
     }
   }
 
@@ -56,20 +63,21 @@ class ProdutoRepository implements IProdutoRepository {
   Future<ProdutoDTO> buscarDetalhe(int id) async {
     try {
       final uri = AppConfig.endpoint('produtos/$id');
-      final response = await http.get(
-        uri,
-        headers: await _headers, // fix: token JWT no header
-      );
+      final response = await http.get(uri, headers: await _headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return ProdutoDTO.fromJson(data);
+      } else if (response.statusCode == 404) {
+        throw Exception('Produto não encontrado.');
       } else {
-        throw Exception('Erro ao buscar detalhe: ${response.statusCode}');
+        throw Exception(
+          'Erro ao buscar detalhe (Código ${response.statusCode})',
+        );
       }
     } catch (e) {
-      print('❌ [APP] Erro capturado no repositório: $e');
-      throw Exception('Erro na conexão com o servidor');
+      if (e is Exception) rethrow;
+      throw Exception('Erro na conexão com o servidor: $e');
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart' as fp;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../core/config/app_config.dart';
 
 class AdminMercadosScreen extends StatefulWidget {
   const AdminMercadosScreen({super.key});
@@ -14,11 +15,12 @@ class AdminMercadosScreen extends StatefulWidget {
 }
 
 class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
-  static const String _baseUrl = 'http://localhost:3333/api/admin';
+  Uri _endpoint(String path) =>
+    AppConfig.endpoint('/admin$path');
 
   List<Map<String, dynamic>> _mercados = [];
   bool _carregando = true;
-  String _erro = ''; // fix: guarda mensagem de erro para mostrar na tela
+  String _erro = '';
 
   @override
   void initState() {
@@ -42,8 +44,9 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
     });
     try {
       final response = await http
-          .get(Uri.parse('$_baseUrl/mercados'), headers: await _headers)
-          .timeout(const Duration(seconds: 10));
+          .get( _endpoint('/mercados'),
+          headers: await _headers,
+          );
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
@@ -105,7 +108,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
           ElevatedButton(
             onPressed: () async {
               final response = await http.post(
-                Uri.parse('$_baseUrl/mercados'),
+                _endpoint('/mercados'),
                 headers: await _headers,
                 body: jsonEncode({
                   'cnpj': cnpjCtrl.text,
@@ -281,7 +284,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
     for (final m in mercados) {
       try {
         final response = await http.post(
-          Uri.parse('$_baseUrl/mercados'),
+          _endpoint('/mercados'),
           headers: headers,
           body: jsonEncode(m),
         );
@@ -324,7 +327,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
 
     if (confirmar == true) {
       await http.delete(
-        Uri.parse('$_baseUrl/mercados/$id'),
+        _endpoint('/mercados/$id'),
         headers: await _headers,
       );
       _carregar();

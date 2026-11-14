@@ -11,14 +11,16 @@ export const pool = new Pool({
   }
 });
 
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    logger.error(
-      `❌ Erro ao conectar no banco de dados Neon: ${err.message}`
-    );
-  } else {
-    logger.info(
-      `✅ Conexão com o banco Neon estabelecida com sucesso em: ${res.rows[0].now}`
-    );
-  }
-});
+if (process.env.NODE_ENV !== 'test') {
+  pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+      logger.error(
+        `❌ Erro ao conectar no banco de dados Neon: ${err.message}`
+      );
+    } else {
+      logger.info(
+        `✅ Conexão com o banco Neon estabelecida com sucesso em: ${res.rows[0].now}`
+      );
+    }
+  });
+}

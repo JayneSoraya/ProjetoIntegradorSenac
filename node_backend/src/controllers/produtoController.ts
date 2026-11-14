@@ -1,118 +1,58 @@
 import { Request, Response } from 'express';
-import { pool } from '../database';
+import { ProdutoService } from '../services/produtoService';
 import { logger } from '../utils/logger';
 
 export class ProdutoController {
-
-  // RF05 — Busca por nome/marca e categoria
-  buscar = async (req: Request, res: Response) => {
-    const { busca, categoria, page = '1', limit = '50' } = req.query;
-
+  // RF05 — Busca por nome/marca e categoria com paginação
+  static async buscar(req: Request, res: Response): Promise<Response> {
     try {
+      const { busca, categoria, page = '1', limit = '50' } = req.query;
+
+      // Tratamento seguro para garantir que query params sejam tratados como string ou undefined
+      const buscaStr = typeof busca === 'string' ? busca : undefined;
+      const categoriaStr = typeof categoria === 'string' ? categoria : undefined;
+
       const pageNumber = Math.max(1, parseInt(page as string, 10) || 1);
       const limitNumber = Math.max(1, Math.min(100, parseInt(limit as string, 10) || 50));
-      const offset = (pageNumber - 1) * limitNumber;
 
-      let sql = `
-        SELECT
-          p.id_produto,
-          p.codigo_barras,
-          p.nome_produto,
-          p.marca,
-          p.categoria,
-          p.peso,
-          p.unidade_medida,
-          MIN(o.preco_atual)                         AS preco,
-          AVG(o.preco_atual)                         AS preco_medio,
-          MAX(o.preco_atual) - MIN(o.preco_atual)    AS variacao_preco
-        FROM produto p
-        LEFT JOIN oferta_supermercado o ON o.id_produto = p.id_produto
-        WHERE 1=1
-      `;
+      const produtos = await ProdutoService.buscarComFiltros({
+        busca: buscaStr,
+        categoria: categoriaStr,
+        page: pageNumber,
+        limit: limitNumber,
+      });
 
-      const params: any[] = [];
-      let i = 1;
-
-      if (busca) {
-        sql += ` AND (
-          LOWER(p.nome_produto) LIKE LOWER($${i})
-          OR LOWER(p.marca)     LIKE LOWER($${i})
-        )`;
-        params.push(`%${busca}%`);
-        i++;
-      }
-
-      if (categoria && categoria !== 'Todos') {
-        sql += ` AND p.categoria = $${i}`;
-        params.push(categoria as string);
-        i++;
-      }
-
-      sql += `
-        GROUP BY
-          p.id_produto,
-          p.codigo_barras,
-          p.nome_produto,
-          p.marca,
-          p.categoria,
-          p.peso,
-          p.unidade_medida
-        ORDER BY p.id_produto ASC
-        LIMIT $${i} OFFSET $${i + 1}
-      `;
-
-      params.push(limitNumber, offset);
-
-      const resultado = await pool.query(sql, params);
-
-      return res.status(200).json(resultado.rows);
-
+      return res.status(200).json(produtos);
     } catch (erro) {
       logger.error('❌ Erro ao buscar produtos:', erro);
       return res.status(500).json({ erro: 'Erro ao buscar produtos.' });
     }
-  };
+  }
 
   // RF07 — Detalhe do produto por ID
-  buscarDetalhe = async (req: Request, res: Response) => {
-    const { id } = req.params;
-
+  static async buscarDetalhe(req: Request, res: Response): Promise<Response> {
     try {
-      const resultado = await pool.query(
-        `SELECT
-          p.id_produto,
-          p.codigo_barras,
-          p.nome_produto,
-          p.marca,
-          p.categoria,
-          p.peso,
-          p.unidade_medida,
-          MIN(o.preco_atual)                         AS preco,
-          AVG(o.preco_atual)                         AS preco_medio,
-          MAX(o.preco_atual) - MIN(o.preco_atual)    AS variacao_preco
-         FROM produto p
-         LEFT JOIN oferta_supermercado o ON o.id_produto = p.id_produto
-         WHERE p.id_produto = $1
-         GROUP BY
-           p.id_produto,
-           p.codigo_barras,
-           p.nome_produto,
-           p.marca,
-           p.categoria,
-           p.peso,
-           p.unidade_medida`,
-        [id]
-      );
+      const { id } = req.params;
+      
+      // Garante que pegamos a string mesmo se o Express tipar como array
+      const idStr = Array.isArray(id) ? id[0] : id;
+      const idNumerico = parseInt(idStr, 10);
 
-      if (resultado.rows.length === 0) {
+      if (!idStr || isNaN(idNumerico)) {
+        return res.status(400).json({ erro: 'ID de produto inválido.' });
+      }
+
+      const produto = await ProdutoService.buscarDetalheCompleto(idNumerico);
+
+      if (!produto) {
         return res.status(404).json({ erro: 'Produto não encontrado.' });
       }
 
-      return res.status(200).json(resultado.rows[0]);
+      return res.status(200).json(produto);
 
     } catch (erro) {
       logger.error('❌ Erro ao buscar detalhe:', erro);
       return res.status(500).json({ erro: 'Erro ao buscar produto.' });
     }
-  };
+  }
 }

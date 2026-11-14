@@ -90,11 +90,18 @@ export const processarNota = async (req: Request, res: Response) => {
 
 export const importarHtmlSefaz = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const idStr = Array.isArray(id) ? id[0] : id;
+  const idNota = idStr ? parseInt(idStr, 10) : NaN;
+
   const { html } = req.body;
   const idUsuario = req.usuario?.id_usuario;
 
   if (!idUsuario) {
     return res.status(401).json({ erro: 'Usuário não autenticado.' });
+  }
+
+  if (isNaN(idNota)) {
+    return res.status(400).json({ erro: 'ID da nota fiscal inválido.' });
   }
 
   if (!html) {
@@ -105,7 +112,7 @@ export const importarHtmlSefaz = async (req: Request, res: Response) => {
     // 1. Confirma que a nota pertence ao usuário logado
     const notaCheck = await pool.query(
       `SELECT id_nota, status FROM nota_fiscal WHERE id_nota = $1 AND id_usuario = $2`,
-      [id, idUsuario]
+      [idNota, idUsuario]
     );
 
     if (notaCheck.rows.length === 0) {
@@ -113,9 +120,9 @@ export const importarHtmlSefaz = async (req: Request, res: Response) => {
     }
 
     // 2. Processa o HTML manualmente
-    const resultado = await processarHtmlSefazManual(html, idUsuario, Number(id));
+    const resultado = await processarHtmlSefazManual(html, idUsuario, idNota);
 
-    logger.info(`✅ Nota ID ${id} sincronizada manualmente via HTML do WebView pelo usuário ${idUsuario}`);
+    logger.info(`📝 Nota ID ${idNota} sincronizada manualmente via HTML do WebView pelo usuário ${idUsuario}`);
 
     return res.status(200).json({
       ...resultado,
@@ -124,7 +131,7 @@ export const importarHtmlSefaz = async (req: Request, res: Response) => {
     });
 
   } catch (erro: any) {
-    logger.error(`❌ Erro ao processar HTML manual da nota ID ${id}: ${erro.message}`);
+    logger.error(`❌ Erro ao processar HTML manual da nota ID ${idNota}: ${erro.message}`);
     return res.status(500).json({
       sucesso: false,
       erro: 'Erro interno ao salvar os dados da nota.',

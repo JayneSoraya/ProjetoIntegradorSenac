@@ -20,35 +20,99 @@ class ProdutosScreen extends StatefulWidget {
 class _ProdutosScreenState extends State<ProdutosScreen> {
   final CarrinhoController carrinho = CarrinhoController();
   final controller = ProdutoController(ProdutoRepository());
+  final ScrollController _scrollController = ScrollController();
 
   List<ProdutoDTO> produtos = [];
   bool carregando = true;
+  bool carregandoMais = false;
+  bool temMaisPaginas = true;
 
   String categoriaSelecionada = 'Todos';
   String textoBusca = '';
+  int paginaAtual = 1;
+  final int limitePorPagina = 20;
 
   @override
   void initState() {
     super.initState();
-    carregarProdutos();
+    carregarProdutos(reiniciar: true);
+
+    // Listener para paginação infinita ao rolar até o fim da lista
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        if (!carregandoMais && temMaisPaginas) {
+          carregarMaisProdutos();
+        }
+      }
+    });
   }
 
-  Future<void> carregarProdutos() async {
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> carregarProdutos({bool reiniciar = false}) async {
+    if (reiniciar) {
+      setState(() {
+        paginaAtual = 1;
+        carregando = true;
+        temMaisPaginas = true;
+      });
+    }
+
     try {
-      final resultado = await controller.buscarProduto('');
+      final catParam = categoriaSelecionada == 'Todos'
+          ? ''
+          : categoriaSelecionada;
+
+      final resultado = await controller.buscarProduto(
+        textoBusca,
+        categoria: catParam,
+        page: paginaAtual,
+        limit: limitePorPagina,
+      );
 
       if (!mounted) return;
+
       setState(() {
-        produtos = resultado;
+        if (reiniciar) {
+          produtos = resultado;
+        } else {
+          produtos.addAll(resultado);
+        }
+
         carregando = false;
+        carregandoMais = false;
+
+        // Se vier menos itens que o limite, significa que chegamos ao fim da paginação
+        if (resultado.length < limitePorPagina) {
+          temMaisPaginas = false;
+        }
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => carregando = false);
+      setState(() {
+        carregando = false;
+        carregandoMais = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erro ao carregar produtos do banco')),
+        const SnackBar(content: Text('Erro ao carregar produtos do servidor')),
       );
     }
+  }
+
+  Future<void> carregarMaisProdutos() async {
+    if (carregandoMais || !temMaisPaginas) return;
+
+    setState(() {
+      carregandoMais = true;
+      paginaAtual++;
+    });
+
+    await carregarProdutos(reiniciar: false);
   }
 
   // Carrinho
@@ -85,28 +149,8 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
     setState(() {});
   }
 
-  // Build
   @override
   Widget build(BuildContext context) {
-    if (carregando) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      );
-    }
-
-    final filtrados = produtos.where((p) {
-      final categoriaOk =
-          categoriaSelecionada == 'Todos' ||
-          p.categoria == categoriaSelecionada;
-      final buscaOk =
-          textoBusca.isEmpty ||
-          p.nomeProduto.toLowerCase().contains(textoBusca.toLowerCase()) ||
-          (p.marca ?? '').toLowerCase().contains(textoBusca.toLowerCase());
-      return categoriaOk && buscaOk;
-    }).toList();
-
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -170,9 +214,13 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
 
               const SizedBox(height: 16),
 
-              // Busca
+              // Busca (Com debounce implícito ou refresh ao pesquisar)
               TextField(
-                onChanged: (v) => setState(() => textoBusca = v),
+                onChanged: (v) {
+                  setState(() => textoBusca = v);
+                  // Recarrega do zero filtrando no backend
+                  carregarProdutos(reiniciar: true);
+                },
                 decoration: InputDecoration(
                   hintText: 'Procure por produto ou marca',
                   prefixIcon: const Icon(
@@ -211,12 +259,19 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
               ),
 
               const SizedBox(height: 16),
-              // Lista de produtos
+
+              // Lista de produtos com paginação e indicador de loading
               Expanded(
                 child: RefreshIndicator(
                   color: AppColors.primary,
-                  onRefresh: carregarProdutos,
-                  child: filtrados.isEmpty
+                  onRefresh: () => carregarProdutos(reiniciar: true),
+                  child: carregando
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : produtos.isEmpty
                       ? ListView(
                           children: [
                             const SizedBox(height: 100),
@@ -240,9 +295,21 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                           ],
                         )
                       : ListView.builder(
-                          itemCount: filtrados.length,
+                          controller: _scrollController,
+                          itemCount: produtos.length + (carregandoMais ? 1 : 0),
                           itemBuilder: (_, index) {
-                            final produto = filtrados[index];
+                            if (index == produtos.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final produto = produtos[index];
                             final qtd = quantidadeProduto(produto.idProduto);
 
                             final pesoStr = produto.peso > 0
@@ -332,7 +399,11 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
         label: Text(categoria),
         selectedColor: AppColors.primary,
         labelStyle: TextStyle(color: selecionado ? Colors.white : Colors.black),
-        onSelected: (_) => setState(() => categoriaSelecionada = categoria),
+        onSelected: (_) {
+          setState(() => categoriaSelecionada = categoria);
+          // Recarrega os produtos filtrando pela nova categoria escolhida direto no backend
+          carregarProdutos(reiniciar: true);
+        },
       ),
     );
   }

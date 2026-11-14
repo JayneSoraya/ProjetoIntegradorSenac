@@ -12,19 +12,23 @@ class ProdutoController {
 
   Timer? _debounce;
 
+  // Atualizado para aceitar page e limit
   Future<List<ProdutoDTO>> buscarProduto(
     String pesquisa, {
     String categoria = '',
+    int page = 1,
+    int limit = 50,
   }) async {
     try {
-      produtos = await _repository.buscarProduto(
+      final resultado = await _repository.buscarProduto(
         pesquisa,
         categoria: categoria,
+        page: page,
+        limit: limit,
       );
-      return produtos;
+      return resultado;
     } catch (e) {
       erro = 'Erro ao buscar produtos';
-      produtos = [];
       return [];
     }
   }
@@ -36,13 +40,15 @@ class ProdutoController {
   ) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      buscar(texto: texto, categoria: categoria, atualizar: atualizar);
+      buscar(texto: texto, categoria: categoria, atualizar: atualizar, page: 1);
     });
   }
 
   Future<void> buscar({
     String texto = '',
     String categoria = '',
+    int page = 1,
+    int limit = 50,
     required void Function() atualizar,
   }) async {
     carregando = true;
@@ -50,7 +56,12 @@ class ProdutoController {
     atualizar();
 
     try {
-      produtos = await _repository.buscarProduto(texto, categoria: categoria);
+      produtos = await _repository.buscarProduto(
+        texto,
+        categoria: categoria,
+        page: page,
+        limit: limit,
+      );
     } catch (e) {
       erro = 'Erro ao buscar produtos';
       produtos = [];
