@@ -12,8 +12,6 @@ import {
 } from '../controllers/adminController';
 
 const router = Router();
-console.log('ENTROU NO CONTROLLER');
-
 router.use(autenticar, apenasAdmin);
 
 // ── Mercados (RF21) ────────────────────────────────────────

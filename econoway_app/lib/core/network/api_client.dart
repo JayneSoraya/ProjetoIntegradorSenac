@@ -51,7 +51,7 @@ class ApiClient {
     return _decode(response);
   }
 
- static Future<dynamic> post(
+  static Future<dynamic> post(
     String path, {
     Object? body,
     bool authenticated = true,

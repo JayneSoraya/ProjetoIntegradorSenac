@@ -67,88 +67,166 @@ async function obterOuCriarSupermercado(
 
 async function resolverOuInserirProduto(
   client: PoolClient,
-  item: ItemNota
+  item: ItemNota,
 ): Promise<number> {
+
   const nomeOriginal = item.nome;
-  const nomeNormalizado = ProdutoService.normalizarNome(nomeOriginal);
-  const categoria = ProdutoService.classificarCategoria(nomeNormalizado);
-  const medida = ProdutoService.extrairMedida(nomeNormalizado);
 
-  const precisaRevisao = categoria === 'Não classificado';
-  const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
-  const dataEnriquecimento = statusEnriquecimento === 'CONCLUIDO' ? new Date() : null;
-  const isEnriquecido = statusEnriquecimento === 'CONCLUIDO';
+  const nomeNormalizado =
+    ProdutoService.normalizarNome(
+      nomeOriginal,
+    );
 
+  const categoria =
+    ProdutoService.classificarCategoria(
+      nomeNormalizado,
+    );
+
+  const medida =
+    ProdutoService.extrairMedida(
+      nomeNormalizado,
+    );
+
+  const precisaRevisao =
+    categoria === 'Não classificado';
+
+  const statusEnriquecimento =
+    precisaRevisao
+      ? 'PENDENTE'
+      : 'CONCLUIDO';
+
+  const dataEnriquecimento =
+    statusEnriquecimento === 'CONCLUIDO'
+      ? new Date()
+      : null;
+
+  const isEnriquecido =
+    statusEnriquecimento === 'CONCLUIDO';
+
+  //
+  // PRODUTO COM GTIN
+  //
   if (item.codigoBarras) {
-    const produtoResult = await client.query(
-      `INSERT INTO produto (
-        codigo_barras,
-        nome_produto,
-        nome_original,
-        nome_normalizado,
-        categoria,
-        peso,
-        unidade_medida,
-        status_enriquecimento,
-        data_enriquecimento,
-        enriquecido
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (codigo_barras)
-      DO UPDATE SET
-        nome_normalizado = COALESCE(produto.nome_normalizado, EXCLUDED.nome_normalizado)
-      RETURNING id_produto`,
-      [
-        item.codigoBarras,
-        nomeNormalizado,
-        nomeOriginal,
-        nomeNormalizado,
-        categoria,
-        medida?.quantidade ?? null,
-        medida?.unidade ?? null,
-        statusEnriquecimento,
-        dataEnriquecimento,
-        isEnriquecido,
-      ]
-    );
-    return produtoResult.rows[0].id_produto;
-  } else {
-    const buscaProd = await client.query(
-      `SELECT id_produto FROM produto WHERE codigo_barras IS NULL AND nome_normalizado = $1 LIMIT 1`,
-      [nomeNormalizado]
-    );
 
-    if (buscaProd.rows.length > 0) {
-      return buscaProd.rows[0].id_produto;
-    }
+    const produtoResult =
+      await client.query(
+        `
+        INSERT INTO produto (
+          codigo_barras,
+          nome_produto,
+          nome_original,
+          nome_normalizado,
+          categoria,
+          peso,
+          unidade_medida,
+          status_enriquecimento,
+          data_enriquecimento,
+          enriquecido
+        )
+        VALUES (
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
+        )
+        ON CONFLICT (codigo_barras)
+        DO UPDATE SET
+          nome_normalizado =
+            COALESCE(
+              produto.nome_normalizado,
+              EXCLUDED.nome_normalizado
+            )
+        RETURNING id_produto
+        `,
+        [
+          item.codigoBarras,
+          nomeNormalizado,
+          nomeOriginal,
+          nomeNormalizado,
+          categoria,
+          medida?.quantidade ?? null,
+          medida?.unidade ?? null,
+          statusEnriquecimento,
+          dataEnriquecimento,
+          isEnriquecido,
+        ],
+      );
 
-    const insertProd = await client.query(
-      `INSERT INTO produto (
-        codigo_barras,
-        nome_produto,
-        nome_original,
-        nome_normalizado,
-        categoria,
-        peso,
-        unidade_medida,
-        status_enriquecimento,
-        data_enriquecimento,
-        enriquecido
-      ) VALUES (NULL, $1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id_produto`,
-      [
-        nomeNormalizado,
-        nomeOriginal,
-        nomeNormalizado,
-        categoria,
-        medida?.quantidade ?? null,
-        medida?.unidade ?? null,
-        statusEnriquecimento,
-        dataEnriquecimento,
-        isEnriquecido,
-      ]
-    );
-    return insertProd.rows[0].id_produto;
+    return produtoResult.rows[0]
+      .id_produto;
   }
+
+  // PRODUTO SEM GTIN
+  const produtoExistente =
+    await client.query(
+      `
+      SELECT id_produto
+      FROM produto
+      WHERE
+        codigo_barras IS NULL
+        AND nome_normalizado = $1
+      LIMIT 1
+      `,
+      [nomeNormalizado],
+    );
+
+  if (
+    produtoExistente.rows.length > 0
+  ) {
+
+    return produtoExistente.rows[0]
+      .id_produto;
+  }
+
+  const codigoInterno =
+    `INT-${Date.now()}-${Math.floor(
+      Math.random() * 10000,
+    )}`;
+
+  const insertProd =
+    await client.query(
+      `
+      INSERT INTO produto (
+        codigo_barras,
+        codigo_interno,
+        nome_produto,
+        nome_original,
+        nome_normalizado,
+        categoria,
+        peso,
+        unidade_medida,
+        status_enriquecimento,
+        data_enriquecimento,
+        enriquecido
+      )
+      VALUES (
+        NULL,
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10
+      )
+      RETURNING id_produto
+      `,
+      [
+        codigoInterno,
+        nomeNormalizado,
+        nomeOriginal,
+        nomeNormalizado,
+        categoria,
+        medida?.quantidade ?? null,
+        medida?.unidade ?? null,
+        statusEnriquecimento,
+        dataEnriquecimento,
+        isEnriquecido,
+      ],
+    );
+
+  return insertProd.rows[0]
+    .id_produto;
 }
 
 function extrairItensDaNota(
@@ -438,6 +516,10 @@ export async function processarHtmlSefazManual(
 
   logger.info(`Itens encontrados no HTML: ${itensDaNota.length}`);
 
+  if (itensDaNota.length === 0) {
+    throw new Error('Nenhum item válido foi encontrado no HTML da nota fiscal.');
+  }
+
   return comTransacao(async (client) => {
     const idSupermercado = await obterOuCriarSupermercado(
       client,
@@ -474,7 +556,7 @@ export async function processarHtmlSefazManual(
       produtosSalvos.push(item.nome);
     }
 
-    // Batch Insert otimizado na tabela nota_item
+    // Batch Insert otimizado e seguro na tabela nota_item
     if (itensParaInserir.length > 0) {
       const valoresSql: string[] = [];
       const parametrosSql: any[] = [];
@@ -482,7 +564,13 @@ export async function processarHtmlSefazManual(
 
       for (const { idProduto, item } of itensParaInserir) {
         valoresSql.push(`($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`);
-        parametrosSql.push(idNotaExistente, idProduto, item.quantidade, item.unidade, item.preco);
+        parametrosSql.push(
+          idNotaExistente, 
+          idProduto, 
+          item.quantidade, 
+          item.unidade || 'UN', 
+          item.preco
+        );
       }
 
       await client.query(

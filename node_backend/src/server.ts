@@ -19,15 +19,6 @@ import { apiLimiter } from './middleware/rateLimitMiddleware';
 dotenv.config();
 
 const app = express();
-
-app.use((req, res, next) => {
-  console.log('REQ CHEGOU:', req.method, req.url);
-  next();
-});
-app.get('/ping', (req, res) => {
-  console.log('PING FUNCIONOU');
-  return res.end('pong');
-});
 const PORT = process.env.PORT || 3333;
 
 // -- Middlewares Globais --

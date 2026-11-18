@@ -47,6 +47,9 @@ class SecureSessionStorage {
 
   /// Limpa completamente todos os dados da sessão (Logout).
   static Future<void> clear() async {
-    await _storage.deleteAll();
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _nameKey);
+    await _storage.delete(key: _roleKey);
+    await _storage.delete(key: _idKey);
   }
 }

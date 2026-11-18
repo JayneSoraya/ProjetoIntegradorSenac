@@ -15,8 +15,7 @@ class AdminMercadosScreen extends StatefulWidget {
 }
 
 class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
-  Uri _endpoint(String path) =>
-    AppConfig.endpoint('/admin$path');
+  Uri _endpoint(String path) => AppConfig.endpoint('/admin$path');
 
   List<Map<String, dynamic>> _mercados = [];
   bool _carregando = true;
@@ -43,10 +42,10 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
       _erro = '';
     });
     try {
-      final response = await http
-          .get( _endpoint('/mercados'),
-          headers: await _headers,
-          );
+      final response = await http.get(
+        _endpoint('/mercados'),
+        headers: await _headers,
+      );
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
@@ -326,10 +325,7 @@ class _AdminMercadosScreenState extends State<AdminMercadosScreen> {
     );
 
     if (confirmar == true) {
-      await http.delete(
-        _endpoint('/mercados/$id'),
-        headers: await _headers,
-      );
+      await http.delete(_endpoint('/mercados/$id'), headers: await _headers);
       _carregar();
     }
   }

@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'dart:math' as math;
 import 'package:econoway_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -22,22 +22,6 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
   String filtro = 'Menor preço';
 
   bool carregando = true;
-
-  double get economiaSelecionada {
-    if (mercadoSelecionadoIndex == null) return 0;
-    final selecionado = mercadosOrdenados[mercadoSelecionadoIndex!];
-
-    if (!selecionado.carrinhoCompleto) return 0;
-
-    final completos = mercadosOrdenados
-        .where((m) => m.carrinhoCompleto)
-        .toList();
-    if (completos.isEmpty) return 0;
-
-    final menorPreco = completos.first.total;
-    final diferenca = selecionado.total - menorPreco;
-    return diferenca > 0 ? diferenca : 0;
-  }
 
   List<MercadoComparacaoDTO> mercados = [];
 
@@ -68,6 +52,8 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
         }),
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final List dados = jsonDecode(response.body);
 
@@ -84,33 +70,38 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
     } catch (e) {
       debugPrint(e.toString());
 
+      if (!mounted) return;
       setState(() {
         carregando = false;
       });
     }
   }
 
+  // ── Ordenação ──────────────────────────────────────────────
   List<MercadoComparacaoDTO> get mercadosOrdenados {
     final lista = [...mercados];
 
     if (filtro == 'Menor preço') {
       lista.sort((a, b) {
-        // Carrinhos completos vêm primeiro
-        if (a.carrinhoCompleto && !b.carrinhoCompleto) {
-          return -1;
+        // 1º: carrinhos completos antes dos incompletos
+        if (a.carrinhoCompleto != b.carrinhoCompleto) {
+          return a.carrinhoCompleto ? -1 : 1;
         }
-
-        if (!a.carrinhoCompleto && b.carrinhoCompleto) {
-          return 1;
+        // 2º: entre incompletos, os que faltam menos itens vêm antes
+        if (!a.carrinhoCompleto) {
+          final porFaltantes = a.itensFaltando.compareTo(b.itensFaltando);
+          if (porFaltantes != 0) return porFaltantes;
         }
-
-        // Dentro do mesmo grupo, ordenar por preço
+        // 3º: menor total
         return a.total.compareTo(b.total);
       });
     }
 
     if (filtro == 'Melhor avaliação') {
-      lista.sort((a, b) => b.avaliacao.compareTo(a.avaliacao));
+      lista.sort((a, b) {
+        final porNota = b.avaliacao.compareTo(a.avaliacao);
+        return porNota != 0 ? porNota : a.total.compareTo(b.total);
+      });
     }
 
     //if (filtro == 'Mais perto') {
@@ -120,14 +111,46 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
     return lista;
   }
 
-  double get economiaPotencial {
-    final completos = mercadosOrdenados
-        .where((m) => m.carrinhoCompleto) // ← só completos
-        .toList();
-    if (completos.length < 2) return 0;
+  // ── Economia ───────────────────────────────────────────────
+  // Só mercados com carrinho completo são comparáveis entre si.
+  // Calculado direto sobre os totais, sem depender da ordenação.
+  List<double> get _totaisCompletos =>
+      mercados.where((m) => m.carrinhoCompleto).map((m) => m.total).toList();
 
-    // diferença entre o mais caro e o mais barato entre completos
-    final diferenca = completos.last.total - completos.first.total;
+  double get _menorTotalCompleto =>
+      _totaisCompletos.isEmpty ? 0 : _totaisCompletos.reduce(math.min);
+
+  double get _maiorTotalCompleto =>
+      _totaisCompletos.isEmpty ? 0 : _totaisCompletos.reduce(math.max);
+
+  // Diferença entre o mercado completo mais caro e o mais barato
+  double get economiaPotencial {
+    if (_totaisCompletos.length < 2) return 0;
+    final diferenca = _maiorTotalCompleto - _menorTotalCompleto;
+    return diferenca > 0 ? diferenca : 0;
+  }
+
+  // Quanto o usuário economiza no mercado escolhido
+  // em relação ao completo mais caro.
+  double get economiaSelecionada {
+    if (mercadoSelecionadoIndex == null) return 0;
+    final selecionado = mercadosOrdenados[mercadoSelecionadoIndex!];
+
+    if (!selecionado.carrinhoCompleto) return 0;
+    if (_totaisCompletos.length < 2) return 0;
+
+    final diferenca = _maiorTotalCompleto - selecionado.total;
+    return diferenca > 0 ? diferenca : 0;
+  }
+
+  // Quanto o mercado escolhido custa a mais que o completo mais barato
+  double get acimaDoMaisBarato {
+    if (mercadoSelecionadoIndex == null) return 0;
+    final selecionado = mercadosOrdenados[mercadoSelecionadoIndex!];
+
+    if (!selecionado.carrinhoCompleto) return 0;
+
+    final diferenca = selecionado.total - _menorTotalCompleto;
     return diferenca > 0 ? diferenca : 0;
   }
 
@@ -195,14 +218,11 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
 
                   final selecionado = mercadoSelecionadoIndex == index;
 
-                  final indiceMaisBarato = ordenados.indexWhere(
-                    (m) => m.carrinhoCompleto,
-                  );
-
+                  // "Mais barato" só vale para carrinho completo
                   final maisBarato =
                       filtro == 'Menor preço' &&
-                      index == indiceMaisBarato &&
-                      indiceMaisBarato != -1;
+                      index == 0 &&
+                      mercado.carrinhoCompleto;
 
                   return Card(
                     child: ListTile(
@@ -216,16 +236,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                         children: [
                           Expanded(child: Text(mercado.nome)),
                           if (maisBarato)
-                            Chip(
-                              backgroundColor: Colors.green,
-                              label: const Text(
-                                '🏆 Melhor oferta',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                            const Chip(label: Text('Mais barato')),
                         ],
                       ),
                       subtitle: Column(
@@ -312,7 +323,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                   if (economiaPotencial > 0) ...[
                     const Divider(),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Economia potencial'),
                         Text(
@@ -344,15 +355,33 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
-                    if (ordenados[mercadoSelecionadoIndex!].carrinhoCompleto)
-                      Text(
-                        'Economia estimada: R\$ ${economiaSelecionada.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
+                    if (ordenados[mercadoSelecionadoIndex!]
+                        .carrinhoCompleto) ...[
+                      if (economiaSelecionada > 0)
+                        Text(
+                          'Economia estimada: R\$ ${economiaSelecionada.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      )
-                    else
+                      if (acimaDoMaisBarato > 0)
+                        Text(
+                          'R\$ ${acimaDoMaisBarato.toStringAsFixed(2)} a mais que o mercado completo mais barato',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      else if (_totaisCompletos.length >= 2)
+                        const Text(
+                          'Menor preço entre os mercados com carrinho completo',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                    ] else
                       const Text(
                         'Este mercado não possui todos os itens da lista.',
                         style: TextStyle(

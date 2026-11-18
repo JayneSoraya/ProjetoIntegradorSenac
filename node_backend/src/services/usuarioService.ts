@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { pool } from '../database';
+import { UsuarioRepository } from '../repositories/usuarioRepository';
 
 export interface CadastroUsuarioDTO {
   nome: string;
@@ -109,15 +110,25 @@ export class UsuarioService {
       throw new Error('E-mail ou senha incorretos.');
     }
 
-    const token = jwt.sign(
-      {
-        id_conta: conta.id_conta,
-        id_usuario: conta.id_usuario,
-        tipo_conta: conta.tipo_conta,
-      },
-      process.env.JWT_SECRET || 'dev_secret',
-      { expiresIn: '1d' }
-    );
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error(
+    'JWT_SECRET não configurado'
+  );
+}
+
+const token = jwt.sign(
+  {
+    id_conta: conta.id_conta,
+    id_usuario: conta.id_usuario,
+    tipo_conta: conta.tipo_conta,
+  },
+  JWT_SECRET,
+  {
+    expiresIn: '7d',
+  }
+);
 
     return {
       usuario: {

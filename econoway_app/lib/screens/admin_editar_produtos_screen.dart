@@ -126,8 +126,7 @@ class _AdminEditarProdutoScreenState extends State<AdminEditarProdutoScreen> {
           'imagem_url': _imagemUrlController.text.trim().isNotEmpty
               ? _imagemUrlController.text.trim()
               : null,
-          'status_enriquecimento':
-              _statusEnriquecimento,
+          'status_enriquecimento': _statusEnriquecimento,
         },
       );
 
@@ -137,11 +136,9 @@ class _AdminEditarProdutoScreenState extends State<AdminEditarProdutoScreen> {
           content: Text('Produto atualizado com sucesso!'),
           backgroundColor: Colors.green,
         ),
-        
       );
-      
+
       Navigator.pop(context, true);
-      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -343,11 +340,14 @@ class _AdminEditarProdutoScreenState extends State<AdminEditarProdutoScreen> {
                         labelText: 'Categoria',
                         border: OutlineInputBorder(),
                       ),
-                      items: categorias.map((categoria) => DropdownMenuItem<String>(
-                          value: categoria,
-                          child: Text(categoria),
-                        ),
-                      ).toList(),
+                      items: categorias
+                          .map(
+                            (categoria) => DropdownMenuItem<String>(
+                              value: categoria,
+                              child: Text(categoria),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (value) {
                         setState(() {
                           _categoriaSelecionada = value!;

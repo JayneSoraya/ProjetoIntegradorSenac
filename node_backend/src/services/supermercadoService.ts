@@ -1,72 +1,64 @@
 import type { PoolClient } from 'pg';
-import { pool } from '../database';
 
-export interface SupermercadoDTO {
-  nome: string;
-  url_logo?: string | null;
-  logradouro?: string | null;
-  numero?: string | null;
-  bairro?: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  cep?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-}
+import {
+  SupermercadoDTO,
+  SupermercadoRepository,
+} from '../repositories/supermercadoRepository';
 
 export class SupermercadoService {
-  /**
-   * Salva um novo supermercado no banco.
-   * Aceita opcionalmente um PoolClient para participar de transações atômicas.
-   */
-  static async cadastrar(dados: SupermercadoDTO, client?: PoolClient) {
-    const db = client || pool;
 
-    const {
-      nome,
-      url_logo = null,
-      logradouro = null,
-      numero = null,
-      bairro = null,
-      cidade = null,
-      estado = null,
-      cep = null,
-      latitude = null,
-      longitude = null,
-    } = dados;
+  static async cadastrar(
+    dados: SupermercadoDTO,
+    client?: PoolClient,
+  ) {
 
-    const query = `
-      INSERT INTO supermercado (
-        nome, url_logo, logradouro, numero, bairro, cidade, estado, cep, latitude, longitude
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING *;
-    `;
+    if (!dados.nome?.trim()) {
+      throw new Error(
+        'Nome do supermercado é obrigatório.',
+      );
+    }
 
-    const valores = [
-      nome,
-      url_logo,
-      logradouro,
-      numero,
-      bairro,
-      cidade,
-      estado,
-      cep,
-      latitude,
-      longitude,
-    ];
-
-    const resultado = await db.query(query, valores);
-    return resultado.rows[0];
+    return SupermercadoRepository.cadastrar(
+      dados,
+      client,
+    );
   }
 
-  /**
-   * Lista todos os supermercados cadastrados ordenados alfabeticamente por nome.
-   */
-  static async listarTodos(client?: PoolClient) {
-    const db = client || pool;
-    const query = 'SELECT * FROM supermercado ORDER BY nome ASC;';
-    const resultado = await db.query(query);
-    return resultado.rows;
+  static async listarTodos(
+    client?: PoolClient,
+  ) {
+
+    return SupermercadoRepository.listarTodos(
+      client,
+    );
+  }
+
+  static async buscarPerfil(
+    idConta: number,
+  ) {
+
+    return SupermercadoRepository.buscarPorConta(
+      idConta,
+    );
+  }
+
+  static async atualizarPerfil(
+    idSupermercado: number,
+    dados: any,
+  ) {
+
+    if (
+      !dados.nome_fantasia ||
+      dados.nome_fantasia.trim() === ''
+    ) {
+      throw new Error(
+        'Nome fantasia é obrigatório.',
+      );
+    }
+
+    return SupermercadoRepository.atualizar(
+      idSupermercado,
+      dados,
+    );
   }
 }
