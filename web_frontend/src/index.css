@@ -1,24 +1,20 @@
 @import "tailwindcss";
 
-@theme {
-  --color-econoway-green: #0B5345;  /* Primary - Deep Forest */
-  --color-econoway-light: #2ECC71;  /* Secondary - Mint Eco */
-  
-  --color-bg-main: var(--bg-main);
-  --color-text-main: var(--text-main);
-  --color-text-heading: var(--text-heading);
-  --color-border-main: var(--border-main);
-}
-
 @layer base {
   :root {
+    /* Cores Institucionais */
+    --econoway-green: #0B5345;  /* Deep Forest */
+    --econoway-light: #2ECC71;  /* Mint Eco */
+
+    /* Variáveis do Tema Light */
     --bg-main: #F9FAFB;
-    --text-main: #4B5563;       
+    --text-main: #374151;       
     --text-heading: #111827;    
     --border-main: rgba(17, 24, 39, 0.08);
   }
 
   .dark {
+    /* Variáveis do Tema Dark */
     --bg-main: #111827;
     --text-main: #9CA3AF;       
     --text-heading: #F9FAFB;    
@@ -31,4 +27,14 @@
     transition: background-color 0.3s, color 0.3s;
     -webkit-font-smoothing: antialiased;
   }
+}
+
+@theme {
+  --color-econoway-green: var(--econoway-green);
+  --color-econoway-light: var(--econoway-light);
+  
+  --color-bg-main: var(--bg-main);
+  --color-text-main: var(--text-main);
+  --color-text-heading: var(--text-heading);
+  --color-border-main: var(--border-main);
 }

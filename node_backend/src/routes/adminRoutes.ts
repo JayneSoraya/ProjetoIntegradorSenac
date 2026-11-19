@@ -9,7 +9,8 @@ import {
   bloquearUsuario,
   listarProdutosAdmin,
   atualizarProdutoAdmin,
-} from '../controllers/adminController';
+  removerProdutoAdmin,
+} from '../controllers/adminController';;
 
 const router = Router();
 router.use(autenticar, apenasAdmin);
@@ -27,5 +28,6 @@ router.patch('/usuarios/:id/bloquear',     bloquearUsuario);
 // ── Produtos ───────────────────────────────────────────────
 router.get('/produtos',                      listarProdutosAdmin);
 router.put('/produtos/:id',              atualizarProdutoAdmin );
+router.delete('/produtos/:id',   removerProdutoAdmin);
 
 export default router;

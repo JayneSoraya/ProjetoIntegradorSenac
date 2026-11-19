@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; 
-import { X, Mail, Lock, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Mail, Lock, User, ArrowLeft, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
+import { api } from '../services/api';
 import type { AuthFormData } from '../types';
 
 interface LoginModalProps {
@@ -11,57 +13,94 @@ interface LoginModalProps {
 
 type ViewType = 'login' | 'register' | 'forgot-password' | 'reset-sent';
 
+const PERFIS_PERMITIDOS = ['ADMIN', 'MERCADO'];
+
+function extrairPayloadToken(token: string): { tipo_conta?: string } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(window.atob(base64));
+  } catch {
+    return null;
+  }
+}
+
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('login');
   const [formData, setFormData] = useState<AuthFormData>({
     email: '',
     password: '',
-    name: ''
+    name: '',
   });
   const [message, setMessage] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // URL base do seu backend Node.js
-  const API_URL = 'http://localhost:3333/api/auth';
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setMessage('');
+    setIsSuccess(false);
 
     try {
       if (currentView === 'login') {
-        const response = await axios.post(`${API_URL}/login`, {
-          email: formData.email,
-          password: formData.password
+        const { data } = await api.post('/auth/login', {
+          email: formData.email.trim().toLowerCase(),
+          senha: formData.password,
         });
+
+        const payloadToken = data.token ? extrairPayloadToken(data.token) : null;
+        const tipoConta = data.usuario?.tipo_conta || payloadToken?.tipo_conta;
+
+        if (!tipoConta || !PERFIS_PERMITIDOS.includes(tipoConta)) {
+          setMessage('Acesso restrito. Utilize o aplicativo EconoWay para contas de consumidor.');
+          setIsLoading(false);
+          return;
+        }
+
+        setIsSuccess(true);
         setMessage('Login realizado com sucesso!');
-        localStorage.setItem('@EconoWay:token', response.data.token);
-        localStorage.setItem('@EconoWay:usuario', JSON.stringify(response.data.usuario));
-        
+        localStorage.setItem('@EconoWay:token', data.token);
+        localStorage.setItem(
+          '@EconoWay:usuario',
+          JSON.stringify({ ...data.usuario, tipo_conta: tipoConta })
+        );
+
         setTimeout(() => {
-          window.location.href = '/dashboard'; 
-        }, 1500);
+          onClose();
+          navigate('/admin');
+        }, 800);
       } else if (currentView === 'register') {
-        await axios.post(`${API_URL}/register`, {
-          name: formData.name,
-          email: formData.email,
-          password: formData.password
+        await api.post('/auth/register', {
+          nome: formData.name.trim(),
+          email: formData.email.trim().toLowerCase(),
+          senha: formData.password,
+          aceita_lgpd: true,
         });
-        setMessage('Cadastro realizado com sucesso! Faça login.');
+
+        setIsSuccess(true);
+        setMessage('Cadastro realizado! Aguarde liberação de acesso admin.');
         setTimeout(() => {
           setCurrentView('login');
           setMessage('');
+          setIsSuccess(false);
         }, 2000);
       } else if (currentView === 'forgot-password') {
-        await axios.post(`${API_URL}/forgot-password`, {
-          email: formData.email
+        await api.post('/auth/forgot-password', {
+          email: formData.email.trim().toLowerCase(),
         });
         setCurrentView('reset-sent');
       }
     } catch (error: unknown) {
+      setIsSuccess(false);
       if (axios.isAxiosError(error)) {
-        setMessage(error.response?.data?.erro || error.response?.data?.message || 'Erro ao processar solicitação');
+        setMessage(
+          error.response?.data?.erro ||
+            error.response?.data?.message ||
+            'Erro ao processar solicitação'
+        );
       } else {
         setMessage('Ocorreu um erro inesperado');
       }
@@ -73,13 +112,15 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
   const resetForm = () => {
     setFormData({ email: '', password: '', name: '' });
     setMessage('');
+    setIsSuccess(false);
+    setShowPassword(false);
   };
 
   const switchView = (view: ViewType) => {
@@ -105,22 +146,21 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         className="bg-bg-main p-8 md:p-10 rounded-3xl border border-border-main w-full max-w-md relative overflow-hidden text-text-main shadow-2xl transition-colors duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 🌟 Sintaxe atualizada para o Tailwind v4: bg-linear-to-br */}
         <div className="absolute inset-0 opacity-5 pointer-events-none">
           <div className="absolute inset-0 bg-linear-to-br from-econoway-green to-transparent" />
         </div>
 
-        {/* Botão de Fechar */}
         <button
+          type="button"
           className="absolute top-6 right-6 text-text-main/60 hover:text-econoway-green transition-colors z-10 cursor-pointer"
           onClick={onClose}
         >
           <X size={22} />
         </button>
 
-        {/* Botão de Voltar */}
         {(currentView === 'register' || currentView === 'forgot-password') && (
           <button
+            type="button"
             className="absolute top-6 left-6 text-text-main/60 hover:text-econoway-green transition-colors z-10 cursor-pointer"
             onClick={() => switchView('login')}
           >
@@ -142,12 +182,14 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 E-mail Enviado
               </h2>
               <p className="text-sm leading-relaxed text-text-main">
-                Enviamos um link de recuperação para <span className="text-text-heading font-bold">{formData.email}</span>
+                Enviamos um link de recuperação para{' '}
+                <span className="text-text-heading font-bold">{formData.email}</span>
               </p>
               <p className="text-text-main/60 text-xs">
                 Verifique sua caixa de entrada e a pasta de spam. O link expira em 1 hora.
               </p>
               <button
+                type="button"
                 onClick={() => switchView('login')}
                 className="w-full bg-econoway-green py-3.5 rounded-xl font-bold text-white shadow-md hover:bg-econoway-light transition-colors cursor-pointer text-xs uppercase tracking-widest"
               >
@@ -165,21 +207,27 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {currentView === 'register' && (
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50" size={18} />
+                    <User
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50"
+                      size={18}
+                    />
                     <input
                       type="text"
                       name="name"
                       placeholder="Nome Completo"
-                      value={formData.name}
+                      value={formData.name || ''}
                       onChange={handleChange}
                       required
                       className="w-full bg-bg-main pl-12 pr-4 py-3 rounded-xl border border-border-main outline-none focus:ring-2 focus:ring-econoway-green focus:border-econoway-green text-text-heading text-sm transition-all placeholder:text-text-main/40"
                     />
                   </div>
                 )}
-                
+
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50" size={18} />
+                  <Mail
+                    className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50"
+                    size={18}
+                  />
                   <input
                     type="email"
                     name="email"
@@ -193,16 +241,27 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
                 {currentView !== 'forgot-password' && (
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50" size={18} />
+                    <Lock
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-text-main/50"
+                      size={18}
+                    />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       name="password"
                       placeholder="Sua senha"
                       value={formData.password}
                       onChange={handleChange}
                       required
-                      className="w-full bg-bg-main pl-12 pr-4 py-3 rounded-xl border border-border-main outline-none focus:ring-2 focus:ring-econoway-green focus:border-econoway-green text-text-heading text-sm transition-all placeholder:text-text-main/40"
+                      className="w-full bg-bg-main pl-12 pr-11 py-3 rounded-xl border border-border-main outline-none focus:ring-2 focus:ring-econoway-green focus:border-econoway-green text-text-heading text-sm transition-all placeholder:text-text-main/40"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-text-main/50 hover:text-econoway-green transition-colors cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                   </div>
                 )}
 
@@ -223,10 +282,13 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   disabled={isLoading}
                   className="w-full bg-econoway-green py-3.5 rounded-xl font-bold text-white shadow-md hover:bg-econoway-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer text-xs uppercase tracking-widest"
                 >
-                  {isLoading ? 'PROCESSANDO...' : 
-                    currentView === 'login' ? 'Entrar' : 
-                    currentView === 'register' ? 'Cadastrar' :
-                    'Enviar Link'}
+                  {isLoading
+                    ? 'PROCESSANDO...'
+                    : currentView === 'login'
+                      ? 'Entrar'
+                      : currentView === 'register'
+                        ? 'Cadastrar'
+                        : 'Enviar Link'}
                 </button>
               </form>
 
@@ -237,7 +299,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     className={`mt-4 text-center text-sm font-semibold ${
-                      message.includes('sucesso') ? 'text-econoway-light' : 'text-red-500'
+                      isSuccess ? 'text-econoway-light' : 'text-red-500'
                     }`}
                   >
                     {message}
@@ -249,6 +311,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 <p className="mt-6 text-center text-xs text-text-main/60">
                   Não possui cadastro?{' '}
                   <button
+                    type="button"
                     onClick={() => switchView('register')}
                     className="text-econoway-green font-bold hover:underline cursor-pointer"
                   >
@@ -261,6 +324,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 <p className="mt-6 text-center text-xs text-text-main/60">
                   Já possui credenciais?{' '}
                   <button
+                    type="button"
                     onClick={() => switchView('login')}
                     className="text-econoway-green font-bold hover:underline cursor-pointer"
                   >

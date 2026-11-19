@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Gerencia o armazenamento seguro e criptografado da sessão do usuário.
+// Gerencia o armazenamento seguro e criptografado da sessão do usuário.
 class SecureSessionStorage {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -11,7 +11,7 @@ class SecureSessionStorage {
   static const String _roleKey = 'tipo_conta';
   static const String _idKey = 'user_id';
 
-  /// Salva todos os dados da sessão de uma só vez após o login bem-sucedido.
+  //Salva todos os dados da sessão de uma só vez após o login bem-sucedido.
   static Future<void> saveSession({
     required String token,
     required String name,

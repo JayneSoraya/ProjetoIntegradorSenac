@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X, Smartphone } from 'lucide-react';
 
-// 🌟 Tipagem para receber a função que abre o modal
 interface HeaderProps {
   onOpenLogin: () => void;
 }
@@ -23,8 +22,6 @@ const Header: React.FC<HeaderProps> = ({ onOpenLogin }) => {
     { name: 'Início', href: '#inicio' },
     { name: 'Sobre', href: '#sobre' },
     { name: 'Supermercados', href: '#supermercados' },
-    { name: 'Serviços', href: '#servico' },
-    { name: 'Contato', href: '#contato' }
   ];
 
   return (
@@ -79,7 +76,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenLogin }) => {
               </button>
             </motion.li>
 
-            {/* Botão de Entrar (Dispara o Modal no App.tsx) */}
+            {/* Botão de Entrar  */}
             <motion.li
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}

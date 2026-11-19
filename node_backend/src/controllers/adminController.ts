@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AdminService } from '../services/adminService';
 import { logger } from '../utils/logger';
+import { pool } from '../database';
 
 export const listarMercados = async (req: Request, res: Response) => {
   try {
@@ -112,5 +113,33 @@ export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
   } catch (erro) {
     logger.error(`Erro ao atualizar produto: ${erro instanceof Error ? erro.message : String(erro)}`);
     return res.status(500).json({ erro: 'Erro ao atualizar produto.' });
+  }
+};
+
+export const removerProdutoAdmin = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const resultado = await pool.query(
+      'DELETE FROM produtos WHERE id_produto = $1 RETURNING id_produto, nome',
+      [id]
+    );
+
+    if (resultado.rowCount === 0) {
+      return res.status(404).json({ erro: 'Produto não encontrado.' });
+    }
+
+    logger.info(`🗑️ Produto #${id} (${resultado.rows[0].nome}) removido pelo admin.`);
+    return res.json({ mensagem: 'Produto excluído com sucesso.' });
+  } catch (error: any) {
+    // Código 23503 no PostgreSQL = violação de chave estrangeira (produto vinculado a notas/preços)
+    if (error.code === '23503') {
+      return res.status(409).json({
+        erro: 'Este produto possui preços ou notas fiscais vinculadas e não pode ser apagado.',
+      });
+    }
+
+    logger.error(`❌ Erro ao remover produto #${id}: ${error.message}`);
+    return res.status(500).json({ erro: 'Erro interno ao excluir produto.' });
   }
 };
