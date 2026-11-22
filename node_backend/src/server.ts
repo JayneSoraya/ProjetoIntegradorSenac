@@ -11,6 +11,8 @@ import economiaRoutes from './routes/economiaRoutes';
 import adminRoutes from './routes/adminRoutes';
 import cartRoutes from './routes/cartRoutes';
 import userRoutes from './routes/userRoutes';
+import historicoRoutes from './routes/historicoRoutes';
+import progressoRoutes from './routes/progressoRoutes';
 import { baselineSecurityHeaders, browserCsrfGuard, requestAccessLog, requestContext } from './middleware/securityMiddleware';
 import { logger } from './lib/logger';
 
@@ -66,6 +68,8 @@ app.use('/api/carrinho', cartRoutes);
 app.use('/api/usuario', userRoutes);
 app.use('/api/comparacao', comparacaoRoutes);
 app.use('/api/economia', economiaRoutes);
+app.use('/api/historico', historicoRoutes);
+app.use('/api/progresso', progressoRoutes);
 app.use('/api/supermercados', supermercadoRoutes);
 app.use('/api/produtos', produtoRoutes);
 
