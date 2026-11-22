@@ -62,8 +62,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
         setIsSuccess(true);
         setMessage('Login realizado com sucesso!');
-        localStorage.setItem('@EconoWay:token', data.token);
-        localStorage.setItem(
+        sessionStorage.setItem('@EconoWay:token', data.token);
+        sessionStorage.setItem(
           '@EconoWay:usuario',
           JSON.stringify({ ...data.usuario, tipo_conta: tipoConta })
         );
