@@ -43,16 +43,16 @@ O banco Neon, o deploy HTTPS, o monitoramento e os backups de produção ainda p
 - <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg" width="24" height="24" /> **CSS (0.6%)** — Estilização web.
 <!--END_LANGS-->
 
-📱 **Mobile (Aplicativo):**  
+📱 **Mobile (Aplicativo):**\
 Flutter | Dart | Provider/Controller | Secure Session Storage | Camera & NFC-e Scanner
 
-🖼️ **Front-end Web (Portal & Landing Page):**  
+🖼️ **Front-end Web (Portal & Landing Page):**\
 React | Vite | TypeScript | Tailwind CSS | Framer Motion | Lucide Icons | Axios
 
-⚙️ **Back-end (Servidor e API REST):**  
+⚙️ **Back-end (Servidor e API REST):**\
 Node.js | Express | TypeScript | JWT Auth | Security Middleware & CSRF | REST API Contract
 
-🗄️ **Banco de Dados, DevOps & Infraestrutura:**  
+🗄️ **Banco de Dados, DevOps & Infraestrutura:**\
 PostgreSQL | Neon Serverless | Firebird DB | Docker Compose | GitHub Actions (CI & CodeQL)
 
 - `econoway_app/`: aplicativo Flutter para Android;
