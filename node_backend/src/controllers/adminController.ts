@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { AdminService } from '../services/adminService';
 import { logger } from '../utils/logger';
-import { pool } from '../database';
 
 export const listarMercados = async (req: Request, res: Response) => {
   try {
@@ -27,7 +26,6 @@ export const cadastrarMercado = async (req: Request, res: Response) => {
 };
 
 export const editarMercado = async (req: Request, res: Response) => {
-  // Garante que o id seja tratado como string de forma segura
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   
   if (!id) {
@@ -117,22 +115,22 @@ export const atualizarProdutoAdmin = async (req: Request, res: Response) => {
 };
 
 export const removerProdutoAdmin = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ erro: 'ID do produto não fornecido.' });
+  }
 
   try {
-    const resultado = await pool.query(
-      'DELETE FROM produtos WHERE id_produto = $1 RETURNING id_produto, nome',
-      [id]
-    );
+    const produtoRemovido = await AdminService.removerProdutoAdmin(id);
 
-    if (resultado.rowCount === 0) {
-      return res.status(404).json({ erro: 'Produto não encontrado.' });
+    logger.info(`🗑️ Produto #${id} (${produtoRemovido.nome}) removido pelo admin.`);
+    return res.status(200).json({ mensagem: 'Produto excluído com sucesso.' });
+  } catch (error: any) {
+    if (error.message === 'Produto não encontrado.') {
+      return res.status(404).json({ erro: error.message });
     }
 
-    logger.info(`🗑️ Produto #${id} (${resultado.rows[0].nome}) removido pelo admin.`);
-    return res.json({ mensagem: 'Produto excluído com sucesso.' });
-  } catch (error: any) {
-    // Código 23503 no PostgreSQL = violação de chave estrangeira (produto vinculado a notas/preços)
     if (error.code === '23503') {
       return res.status(409).json({
         erro: 'Este produto possui preços ou notas fiscais vinculadas e não pode ser apagado.',

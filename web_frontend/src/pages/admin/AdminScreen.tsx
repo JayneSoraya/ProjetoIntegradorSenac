@@ -25,7 +25,7 @@ interface DashboardKpis {
 export function AdminScreen() {
   const navigate = useNavigate();
 
-  const usuarioRaw = localStorage.getItem('@EconoWay:usuario');
+  const usuarioRaw = sessionStorage.getItem('@EconoWay:usuario');
   const usuario = usuarioRaw ? JSON.parse(usuarioRaw) : { nome: 'Gestor', tipo_conta: 'ADMIN' };
   const isAdmin = usuario.tipo_conta === 'ADMIN';
 
@@ -93,7 +93,7 @@ useEffect(() => {
     };
   }, [isAdmin]);
 
-  const handleLogout = () => {
+ const handleLogout = () => {
     localStorage.removeItem('@EconoWay:token');
     localStorage.removeItem('@EconoWay:usuario');
     navigate('/');

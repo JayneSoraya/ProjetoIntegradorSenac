@@ -10,7 +10,7 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('@EconoWay:token');
+  const token = sessionStorage.getItem('@EconoWay:token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

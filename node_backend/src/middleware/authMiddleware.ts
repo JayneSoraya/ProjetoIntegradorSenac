@@ -14,6 +14,14 @@ declare global {
   }
 }
 
+const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('Variável de ambiente JWT_SECRET não configurada.');
+  }
+  return secret;
+};
+
 export const autenticar = (
   req: Request,
   res: Response,
@@ -32,10 +40,7 @@ export const autenticar = (
   const token = authHeader.split(' ')[1];
 
   try {
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'dev_secret'
-    ) as {
+    const payload = jwt.verify(token, getJwtSecret()) as {
       id_conta: number;
       id_usuario: number;
       tipo_conta?: string;
@@ -48,8 +53,13 @@ export const autenticar = (
     );
 
     next();
-
   } catch (erro) {
+    if (erro instanceof Error && erro.message.includes('JWT_SECRET')) {
+      logger.error('❌ JWT_SECRET ausente no servidor.');
+      return res.status(500).json({
+        erro: 'Erro interno de configuração de autenticação.',
+      });
+    }
 
     logger.warn('⚠️ Token inválido ou expirado.');
 
@@ -64,23 +74,14 @@ export const apenasAdmin = (
   res: Response,
   next: NextFunction
 ) => {
-
-  logger.info(
-    `🔍 ROTA: ${req.method} ${req.originalUrl}`
-  );
-
-  logger.info(
-    `🔍 Tipo recebido no token: ${req.usuario?.tipo_conta}`
-  );
+  logger.info(`🔍 ROTA: ${req.method} ${req.originalUrl}`);
+  logger.info(`🔍 Tipo recebido no token: ${req.usuario?.tipo_conta}`);
 
   if (req.usuario?.tipo_conta !== 'ADMIN') {
-
-    logger.warn(
-      `⛔ Acesso negado na rota ${req.originalUrl}`
-    );
+    logger.warn(`⛔ Acesso negado na rota ${req.originalUrl}`);
 
     return res.status(403).json({
-      erro: 'Acesso restrito a administradores.'
+      erro: 'Acesso restrito a administradores.',
     });
   }
 
@@ -92,13 +93,11 @@ export const apenasMercado = (
   res: Response,
   next: NextFunction
 ) => {
-
   logger.info(
     `🔍 Verificando perfil | tipo_conta: ${req.usuario?.tipo_conta}`
   );
 
   if (req.usuario?.tipo_conta !== 'MERCADO') {
-
     logger.warn(
       `⛔ Acesso negado | tipo_conta recebido: ${req.usuario?.tipo_conta}`
     );
@@ -118,7 +117,6 @@ export const apenasAdminOuMercado = (
   res: Response,
   next: NextFunction
 ) => {
-
   logger.info(
     `🔍 Verificando perfil | tipo_conta: ${req.usuario?.tipo_conta}`
   );
@@ -127,7 +125,6 @@ export const apenasAdminOuMercado = (
     req.usuario?.tipo_conta !== 'ADMIN' &&
     req.usuario?.tipo_conta !== 'MERCADO'
   ) {
-
     logger.warn(
       `⛔ Acesso negado | tipo_conta recebido: ${req.usuario?.tipo_conta}`
     );

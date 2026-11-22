@@ -102,13 +102,13 @@ export function Auth() {
         return;
       }
 
-      localStorage.setItem('@EconoWay:token', data.token);
-      localStorage.setItem(
+      sessionStorage.setItem('@EconoWay:token', data.token);
+      sessionStorage.setItem(
         '@EconoWay:usuario',
         JSON.stringify({ ...data.usuario, tipo_conta: tipoConta })
       );
 
-      navigate('/dashboard');
+      navigate('/admin');
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setErro(err.response?.data?.erro || 'E-mail ou senha incorretos.');

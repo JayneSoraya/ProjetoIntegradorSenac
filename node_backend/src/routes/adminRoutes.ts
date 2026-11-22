@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { autenticar, apenasAdmin } from '../middleware/authMiddleware';
+import { apiLimiter, criticoLimiter } from '../middleware/rateLimitMiddleware';
 import {
   listarMercados,
   cadastrarMercado,
@@ -10,24 +11,26 @@ import {
   listarProdutosAdmin,
   atualizarProdutoAdmin,
   removerProdutoAdmin,
-} from '../controllers/adminController';;
+} from '../controllers/adminController';
 
 const router = Router();
-router.use(autenticar, apenasAdmin);
+
+// Aplica o limitador
+router.use(apiLimiter, autenticar, apenasAdmin);
 
 // ── Mercados (RF21) ────────────────────────────────────────
 router.get('/mercados',          listarMercados);
 router.post('/mercados',         cadastrarMercado);
 router.put('/mercados/:id',      editarMercado);
-router.delete('/mercados/:id',   removerMercado);
+router.delete('/mercados/:id',   criticoLimiter, removerMercado);
 
 // ── Usuários ───────────────────────────────────────────────
 router.get('/usuarios',                    listarUsuarios);
-router.patch('/usuarios/:id/bloquear',     bloquearUsuario);
+router.patch('/usuarios/:id/bloquear',     criticoLimiter, bloquearUsuario);
 
-// ── Produtos ───────────────────────────────────────────────
-router.get('/produtos',                      listarProdutosAdmin);
-router.put('/produtos/:id',              atualizarProdutoAdmin );
-router.delete('/produtos/:id',   removerProdutoAdmin);
+// ── Produtos (RF30 / RF47) ─────────────────────────────────
+router.get('/produtos',          listarProdutosAdmin);
+router.put('/produtos/:id',      atualizarProdutoAdmin);
+router.delete('/produtos/:id',   criticoLimiter, removerProdutoAdmin);
 
 export default router;

@@ -1,4 +1,5 @@
 import { AdminRepository } from '../repositories/adminRepository';
+import { pool } from '../database';
 import { obterPlaceholderPorCategoria } from '../utils/imagemUtils';
 
 export class AdminService {
@@ -69,4 +70,19 @@ export class AdminService {
     await AdminRepository.atualizarProdutoAdmin(id, dados);
     return { mensagem: 'Produto atualizado com sucesso!' };
   }
+
+  static async removerProdutoAdmin(id: string) {
+  const resultado = await pool.query(
+    'DELETE FROM produtos WHERE id_produto = $1 RETURNING id_produto, nome',
+    [id]
+  );
+
+  if (resultado.rowCount === 0) {
+    throw new Error('Produto não encontrado.');
+  }
+
+  return resultado.rows[0];
 }
+}
+
+
