@@ -133,7 +133,7 @@ Os relatórios de cada rodada ficam em `docs/roadmap/`.
 - testes de integração cobrem autenticação, carrinho, comparação, histórico e comparação parcial;
 - o script de execução no Android físico passou a validar dispositivo autorizado, API e cenário antes de instalar o app.
 
-O registro completo está em [`docs/roadmap/execution-report-2026-08-11-codex-phase6.md`](docs/roadmap/execution-report-2026-08-11-codex-phase6.md).
+O registro completo está em [`docs/roadmap/execution-report-2026-08-11-fase6.md`](docs/roadmap/execution-report-2026-08-11-fase6.md).
 
 ## Segurança e banco
 
