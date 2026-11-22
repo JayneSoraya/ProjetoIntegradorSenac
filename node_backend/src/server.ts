@@ -14,7 +14,7 @@ import progressoRoutes from './routes/progressoRoutes';
 import { reprocessarNotasContingencia } from './services/contingenciaService';
 import { logger } from './utils/logger';
 import { autenticar } from './middleware/authMiddleware';
-import { apiLimiter } from './middleware/rateLimitMiddleware';
+import { criticoLimiter } from './middleware/rateLimitMiddleware';
 
 dotenv.config();
 
@@ -24,7 +24,6 @@ const PORT = process.env.PORT || 3333;
 // -- Middlewares Globais --
 app.use(cors());
 app.use(express.json());
-//app.use('/api/', apiLimiter);
 
 // -- Agendamento (Cron Job) ---------------------
 if (process.env.NODE_ENV !== 'test') {
@@ -34,7 +33,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 // -- Rota Manual de Contingência ----------------
-app.post('/api/admin/reprocessar-contingencia', autenticar, async (req, res) => {
+app.post('/api/admin/reprocessar-contingencia', criticoLimiter, autenticar, async (req, res) => {
   try {
     await reprocessarNotasContingencia();
     res.json({ mensagem: 'Rotina de reprocessamento disparada com sucesso.' });
@@ -61,9 +60,9 @@ app.get('/api/status', (req, res) => {
     mensagem: "API SaveMoney funcionando!" 
   });
 });
+
 // -- Exportação do App para testes --------------
 export default app;
-
 
 // -- Inicialização Única do Servidor (Apenas se não for teste) ------------
 if (process.env.NODE_ENV !== 'test') {
@@ -71,4 +70,3 @@ if (process.env.NODE_ENV !== 'test') {
     logger.info(`?? SaveMoney API rodando na porta ${PORT}`);
   });
 }
-
