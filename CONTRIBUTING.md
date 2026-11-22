@@ -14,15 +14,41 @@ Branches permanentes por pessoa não fazem parte do fluxo alvo.
 
 ## Commits
 
-Use mensagens que expliquem intenção. Formato recomendado, não obrigatório:
+Formato obrigatório:
 
 ```text
-feat(cart): persist user cart
-fix(auth): reject missing JWT secret
-docs(api): document price import
+tipo: descrição curta em português
 ```
 
-Evite `add`, `update`, `correção` ou mensagens sem contexto.
+| Tipo | Uso |
+|---|---|
+| `feat` | nova funcionalidade |
+| `fix` | correção de problema |
+| `refactor` | reorganização de código sem mudar comportamento |
+| `test` | criação ou ajuste de testes |
+| `docs` | documentação |
+| `style` | ajuste visual ou formatação |
+| `ci` | integração contínua |
+| `chore` | manutenção (dependências, limpeza, merges) |
+
+Exemplos:
+
+```text
+feat: adicionar validação do carrinho
+fix: corrigir erro na comparação de preços
+test: testar cálculo de economia
+docs: atualizar instruções de instalação
+ci: corrigir execução dos testes
+```
+
+Regras:
+
+- escreva em português, com linguagem simples, descrevendo exatamente o que mudou;
+- um commit por assunto: não misture funcionalidade, formatação e documentação no mesmo commit;
+- não crie commits vazios nem mensagens genéricas como `update`, `ajustes` ou `correção`;
+- use seu nome e o e-mail vinculado à sua conta do GitHub (`git config user.name` e `git config user.email`), para que o commit apareça no seu perfil;
+- não altere autoria nem datas de commits já publicados e não reescreva histórico compartilhado (`push --force`, rebase de commits publicados);
+- publique somente alterações testadas.
 
 ## Definition of Done
 
