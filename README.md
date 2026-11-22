@@ -64,9 +64,15 @@ PostgreSQL | Neon Serverless | Firebird DB | Docker Compose | GitHub Actions (CI
 
 ---
 
+## Segunda entrega (PoC)
+
+O documento da entrega — objetivo da PoC, arquitetura, modelo de dados, organização do código, testes, execução e limitações — está em [`docs/entrega/segunda-entrega-poc.md`](docs/entrega/segunda-entrega-poc.md).
+
+---
+
 ## Pré-requisitos
 
-- Docker Desktop com Compose;
+- um ambiente de contêineres compatível com Compose (Docker ou equivalente);
 - Flutter 3.44 ou superior e Android SDK para o aplicativo;
 - Node.js 20 ou superior para trabalhar diretamente na API ou no frontend;
 - um dispositivo Android com depuração USB ou um emulador, quando for testar o aplicativo.
@@ -77,7 +83,7 @@ Copie o arquivo de exemplo, preencha os valores locais e suba a stack:
 
 ```bash
 cp .env.compose.example .env.compose
-docker compose --env-file .env.compose up --build
+docker compose --env-file .env.compose up --build -d
 ```
 
 API:

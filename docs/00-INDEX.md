@@ -15,6 +15,7 @@
 
 ## Começar aqui
 
+0. [[entrega/segunda-entrega-poc|Segunda entrega — PoC]]
 1. [[product/alpha-scope|Escopo do Alpha]]
 2. [[roadmap/implementation-roadmap|Roadmap]]
 3. [[operations/alpha-runbook|Runbook do Alpha]]
