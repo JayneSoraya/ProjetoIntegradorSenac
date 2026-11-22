@@ -1,4 +1,5 @@
 import { pool } from '../database';
+import { StatusContaService } from './statusContaService';
 
 export class AdminService {
   static async resumo() {
@@ -49,6 +50,7 @@ export class AdminService {
         [actorAccountId, active ? 'CONTA_ATIVADA' : 'CONTA_BLOQUEADA', String(accountId), JSON.stringify({ status_conta: active })],
       );
       await client.query('COMMIT');
+      StatusContaService.invalidar(accountId);
       return changed.rows[0];
     } catch (error) {
       await client.query('ROLLBACK');
