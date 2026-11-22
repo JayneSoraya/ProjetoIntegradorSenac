@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../database';
 import { env } from '../config/env';
 
+const HASH_FICTICIO = bcrypt.hashSync('econoway-conta-inexistente', 10);
+
 export type TipoConta = 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
 
 export interface CadastroUsuarioInput {
@@ -118,7 +120,10 @@ export class AuthService {
     );
 
     const conta = result.rows[0];
-    if (!conta || !(await bcrypt.compare(senha, conta.senha))) {
+    // Compara com um hash fictício quando a conta não existe, para que o tempo de
+    // resposta não revele quais e-mails estão cadastrados.
+    const senhaValida = await bcrypt.compare(senha, conta?.senha ?? HASH_FICTICIO);
+    if (!conta || !senhaValida) {
       throw new Error('INVALID_CREDENTIALS');
     }
 
