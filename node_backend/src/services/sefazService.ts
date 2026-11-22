@@ -14,6 +14,39 @@ type ItemNota = {
   unidade: string;
 };
 
+const PORTAIS_SEFAZ_PERMITIDOS: Record<string, string> = {
+  'www.nfce.fazenda.sp.gov.br': 'www.nfce.fazenda.sp.gov.br',
+  'nfce.fazenda.sp.gov.br': 'nfce.fazenda.sp.gov.br',
+  'www4.fazenda.rj.gov.br': 'www4.fazenda.rj.gov.br',
+  'nfce.fazenda.mg.gov.br': 'nfce.fazenda.mg.gov.br',
+  'portalsped.fazenda.mg.gov.br': 'portalsped.fazenda.mg.gov.br',
+  'www.sefaz.rs.gov.br': 'www.sefaz.rs.gov.br',
+  'nfce.sefazrs.rs.gov.br': 'nfce.sefazrs.rs.gov.br',
+  'www.fazenda.pr.gov.br': 'www.fazenda.pr.gov.br',
+  'sat.sef.sc.gov.br': 'sat.sef.sc.gov.br',
+  'nfe.sefaz.ba.gov.br': 'nfe.sefaz.ba.gov.br',
+  'nfce.sefaz.pe.gov.br': 'nfce.sefaz.pe.gov.br',
+  'nfce.sefaz.ce.gov.br': 'nfce.sefaz.ce.gov.br',
+  'nfe.sefaz.go.gov.br': 'nfe.sefaz.go.gov.br',
+  'www.nfce.se.gov.br': 'www.nfce.se.gov.br',
+  'appnfc.sefa.pa.gov.br': 'appnfc.sefa.pa.gov.br',
+  'sistemas.sefaz.am.gov.br': 'sistemas.sefaz.am.gov.br',
+  'www.sefaz.mt.gov.br': 'www.sefaz.mt.gov.br',
+  'www.dfe.ms.gov.br': 'www.dfe.ms.gov.br',
+  'dec.fazenda.df.gov.br': 'dec.fazenda.df.gov.br',
+  'app.sefaz.es.gov.br': 'app.sefaz.es.gov.br',
+  'nfce.sefaz.ma.gov.br': 'nfce.sefaz.ma.gov.br',
+  'www.receita.pb.gov.br': 'www.receita.pb.gov.br',
+  'nfce.set.rn.gov.br': 'nfce.set.rn.gov.br',
+  'nfce.sefaz.al.gov.br': 'nfce.sefaz.al.gov.br',
+  'webas.sefaz.pi.gov.br': 'webas.sefaz.pi.gov.br',
+  'www.sefaznet.ac.gov.br': 'www.sefaznet.ac.gov.br',
+  'www.sefaz.ap.gov.br': 'www.sefaz.ap.gov.br',
+  'www.nfce.sefin.ro.gov.br': 'www.nfce.sefin.ro.gov.br',
+  'www.sefaz.rr.gov.br': 'www.sefaz.rr.gov.br',
+  'www.sefaz.to.gov.br': 'www.sefaz.to.gov.br',
+};
+
 function sanitizarUrlSefaz(url_qrcode: string): string {
   if (!validarUrlSefaz(url_qrcode)) {
     throw new Error('URL de QR Code da SEFAZ inválida ou não autorizada.');
@@ -26,17 +59,24 @@ function sanitizarUrlSefaz(url_qrcode: string): string {
     throw new Error('URL de QR Code da SEFAZ malformada.');
   }
 
-  const hostname = parsed.hostname.toLowerCase();
-  if (
-    (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
-    !hostname.endsWith('.gov.br')
-  ) {
-    throw new Error('Domínio não autorizado. Apenas portais oficiais (.gov.br) são permitidos.');
+  const hostLower = parsed.hostname.toLowerCase();
+  const hostSeguro = Object.prototype.hasOwnProperty.call(
+    PORTAIS_SEFAZ_PERMITIDOS,
+    hostLower
+  )
+    ? PORTAIS_SEFAZ_PERMITIDOS[hostLower]
+    : null;
+
+  if (!hostSeguro || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) {
+    throw new Error('Portal SEFAZ não reconhecido na lista de domínios permitidos.');
   }
 
-  // Reconstrói a URL a partir dos componentes validados
-  const porta = parsed.port ? `:${parsed.port}` : '';
-  return `${parsed.protocol}//${hostname}${porta}${parsed.pathname}${parsed.search}`;
+  const protocoloSeguro = parsed.protocol === 'https:' ? 'https:' : 'http:';
+  const caminhoSeguro = encodeURI(decodeURI(parsed.pathname));
+  const querySegura = parsed.searchParams.toString();
+  const sufixoQuery = querySegura ? `?${querySegura}` : '';
+
+  return `${protocoloSeguro}//${hostSeguro}${caminhoSeguro}${sufixoQuery}`;
 }
 
 async function comTransacao<T>(
@@ -94,121 +134,23 @@ async function resolverOuInserirProduto(
   client: PoolClient,
   item: ItemNota,
 ): Promise<number> {
-
   const nomeOriginal = item.nome;
 
-  const nomeNormalizado =
-    ProdutoService.normalizarNome(
-      nomeOriginal,
-    );
+  const nomeNormalizado = ProdutoService.normalizarNome(nomeOriginal);
+  const categoria = ProdutoService.classificarCategoria(nomeNormalizado);
+  const medida = ProdutoService.extrairMedida(nomeNormalizado);
 
-  const categoria =
-    ProdutoService.classificarCategoria(
-      nomeNormalizado,
-    );
-
-  const medida =
-    ProdutoService.extrairMedida(
-      nomeNormalizado,
-    );
-
-  const precisaRevisao =
-    categoria === 'Não classificado';
-
-  const statusEnriquecimento =
-    precisaRevisao
-      ? 'PENDENTE'
-      : 'CONCLUIDO';
-
-  const dataEnriquecimento =
-    statusEnriquecimento === 'CONCLUIDO'
-      ? new Date()
-      : null;
-
-  const isEnriquecido =
-    statusEnriquecimento === 'CONCLUIDO';
+  const precisaRevisao = categoria === 'Não classificado';
+  const statusEnriquecimento = precisaRevisao ? 'PENDENTE' : 'CONCLUIDO';
+  const dataEnriquecimento = statusEnriquecimento === 'CONCLUIDO' ? new Date() : null;
+  const isEnriquecido = statusEnriquecimento === 'CONCLUIDO';
 
   // PRODUTO COM GTIN
   if (item.codigoBarras) {
-
-    const produtoResult =
-      await client.query(
-        `
-        INSERT INTO produto (
-          codigo_barras,
-          nome_produto,
-          nome_original,
-          nome_normalizado,
-          categoria,
-          peso,
-          unidade_medida,
-          status_enriquecimento,
-          data_enriquecimento,
-          enriquecido
-        )
-        VALUES (
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
-        )
-        ON CONFLICT (codigo_barras)
-        DO UPDATE SET
-          nome_normalizado =
-            COALESCE(
-              produto.nome_normalizado,
-              EXCLUDED.nome_normalizado
-            )
-        RETURNING id_produto
-        `,
-        [
-          item.codigoBarras,
-          nomeNormalizado,
-          nomeOriginal,
-          nomeNormalizado,
-          categoria,
-          medida?.quantidade ?? null,
-          medida?.unidade ?? null,
-          statusEnriquecimento,
-          dataEnriquecimento,
-          isEnriquecido,
-        ],
-      );
-
-    return produtoResult.rows[0]
-      .id_produto;
-  }
-
-  // PRODUTO SEM GTIN
-  const produtoExistente =
-    await client.query(
-      `
-      SELECT id_produto
-      FROM produto
-      WHERE
-        codigo_barras IS NULL
-        AND nome_normalizado = $1
-      LIMIT 1
-      `,
-      [nomeNormalizado],
-    );
-
-  if (
-    produtoExistente.rows.length > 0
-  ) {
-
-    return produtoExistente.rows[0]
-      .id_produto;
-  }
-
-  const codigoInterno =
-    `INT-${Date.now()}-${Math.floor(
-      Math.random() * 10000,
-    )}`;
-
-  const insertProd =
-    await client.query(
+    const produtoResult = await client.query(
       `
       INSERT INTO produto (
         codigo_barras,
-        codigo_interno,
         nome_produto,
         nome_original,
         nome_normalizado,
@@ -220,22 +162,19 @@ async function resolverOuInserirProduto(
         enriquecido
       )
       VALUES (
-        NULL,
-        $1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
       )
+      ON CONFLICT (codigo_barras)
+      DO UPDATE SET
+        nome_normalizado =
+          COALESCE(
+            produto.nome_normalizado,
+            EXCLUDED.nome_normalizado
+          )
       RETURNING id_produto
       `,
       [
-        codigoInterno,
+        item.codigoBarras,
         nomeNormalizado,
         nomeOriginal,
         nomeNormalizado,
@@ -248,8 +187,73 @@ async function resolverOuInserirProduto(
       ],
     );
 
-  return insertProd.rows[0]
-    .id_produto;
+    return produtoResult.rows[0].id_produto;
+  }
+
+  // PRODUTO SEM GTIN
+  const produtoExistente = await client.query(
+    `
+    SELECT id_produto
+    FROM produto
+    WHERE
+      codigo_barras IS NULL
+      AND nome_normalizado = $1
+    LIMIT 1
+    `,
+    [nomeNormalizado],
+  );
+
+  if (produtoExistente.rows.length > 0) {
+    return produtoExistente.rows[0].id_produto;
+  }
+
+  const codigoInterno = `INT-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+  const insertProd = await client.query(
+    `
+    INSERT INTO produto (
+      codigo_barras,
+      codigo_interno,
+      nome_produto,
+      nome_original,
+      nome_normalizado,
+      categoria,
+      peso,
+      unidade_medida,
+      status_enriquecimento,
+      data_enriquecimento,
+      enriquecido
+    )
+    VALUES (
+      NULL,
+      $1,
+      $2,
+      $3,
+      $4,
+      $5,
+      $6,
+      $7,
+      $8,
+      $9,
+      $10
+    )
+    RETURNING id_produto
+    `,
+    [
+      codigoInterno,
+      nomeNormalizado,
+      nomeOriginal,
+      nomeNormalizado,
+      categoria,
+      medida?.quantidade ?? null,
+      medida?.unidade ?? null,
+      statusEnriquecimento,
+      dataEnriquecimento,
+      isEnriquecido,
+    ],
+  );
+
+  return insertProd.rows[0].id_produto;
 }
 
 function extrairItensDaNota(
@@ -270,18 +274,16 @@ function extrairItensDaNota(
         .text()
         .replace('UN:', '')
         .trim();
-      
+
       const codigoRaw = $(row)
         .find('.RCod')
         .text()
         .replace(/\D/g, '')
         .trim();
-      
-      const codigoBarras = (codigoRaw.length >= 8) ? codigoRaw : null;
 
-      const precoRaw = $(row)
-        .find('.RvlUnit')
-        .text();
+      const codigoBarras = codigoRaw.length >= 8 ? codigoRaw : null;
+
+      const precoRaw = $(row).find('.RvlUnit').text();
       const preco = parseMoeda(precoRaw);
 
       if (!nome || !Number.isFinite(preco) || preco <= 0) {
