@@ -1,3 +1,4 @@
+import { padraoBuscaParcial } from '../domain/consulta';
 import { pool } from '../database';
 
 export class ProdutoRepository {
@@ -33,7 +34,7 @@ export class ProdutoRepository {
          p.unidade_medida
        ORDER BY p.nome_produto ASC
        LIMIT 50`,
-      [termo, `%${termo}%`, categoria],
+      [termo, padraoBuscaParcial(termo), categoria],
     );
 
     return result.rows;

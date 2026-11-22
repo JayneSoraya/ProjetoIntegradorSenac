@@ -1,3 +1,4 @@
+import { padraoBuscaParcial } from '../domain/consulta';
 import { pool } from '../database';
 import { StatusContaService } from './statusContaService';
 
@@ -27,7 +28,7 @@ export class AdminService {
        WHERE $1 = '' OR nome ILIKE $2 OR email ILIKE $2
        ORDER BY dt_cadastro DESC
        LIMIT $3`,
-      [safeSearch, `%${safeSearch}%`, safeLimit],
+      [safeSearch, padraoBuscaParcial(safeSearch), safeLimit],
     );
     return result.rows;
   }

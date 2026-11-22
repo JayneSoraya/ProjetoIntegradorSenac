@@ -1,3 +1,4 @@
+import { padraoBuscaParcial } from '../domain/consulta';
 import { pool } from '../database';
 import { isValidCnpj, onlyDigits } from '../domain/brDocuments';
 import { env } from '../config/env';
@@ -171,7 +172,7 @@ export class SupermercadoService {
     const safePage = Math.max(1, Math.floor(page));
     const safePageSize = Math.min(100, Math.max(10, Math.floor(pageSize)));
     const offset = (safePage - 1) * safePageSize;
-    const params = [marketId, safeTerm, `%${safeTerm}%`];
+    const params = [marketId, safeTerm, padraoBuscaParcial(safeTerm)];
 
     const [count, result] = await Promise.all([
       pool.query<{ total: number }>(

@@ -1,3 +1,4 @@
+import { limiteSeguro } from '../domain/consulta';
 import { pool } from '../database';
 import { validatePriceImport } from '../domain/priceImport';
 
@@ -188,7 +189,7 @@ export class PriceImportService {
        WHERE id_supermercado = $1
        ORDER BY criada_em DESC
        LIMIT $2`,
-      [marketId, Math.min(Math.max(limit, 1), 100)],
+      [marketId, limiteSeguro(limit, 50)],
     );
     return result.rows;
   }

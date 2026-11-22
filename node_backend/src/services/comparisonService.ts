@@ -1,3 +1,4 @@
+import { limiteSeguro } from '../domain/consulta';
 import { pool } from '../database';
 import { CartItemInput } from '../domain/cart';
 import { rankMarkets, roundCurrency, summarizeCompleteMarkets } from '../domain/comparison';
@@ -271,7 +272,7 @@ export class ComparisonService {
   }
 
   static async history(userId: number, limit = 20) {
-    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safeLimit = limiteSeguro(limit, 20);
     const result = await pool.query(
       `SELECT
          c.id_comparacao,
