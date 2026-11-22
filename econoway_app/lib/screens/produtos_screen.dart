@@ -10,6 +10,7 @@ import '../repository/produto_repository.dart';
 import '../theme/app_theme.dart';
 import '../widgets/produto_card.dart';
 import 'carrinho_screen.dart';
+import 'historico_preco_screen.dart';
 
 class ProdutosScreen extends StatefulWidget {
   const ProdutosScreen({super.key});
@@ -192,6 +193,15 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                             quantidade: quantityFor(product.idProduto),
                             onAdicionar: () => add(product),
                             onRemover: () => remove(product),
+                            onVerPrecos: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => HistoricoPrecoScreen(
+                                  idProduto: product.idProduto,
+                                  nomeProduto: product.nomeProduto,
+                                ),
+                              ),
+                            ),
                           );
                         },
                       ),

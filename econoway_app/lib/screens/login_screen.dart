@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'cadastro_screen.dart';
+import 'recuperar_senha_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -216,7 +217,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   _buildSenhaField(),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
+
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _carregando
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RecuperarSenhaScreen(
+                                  emailInicial: _emailController.text.trim(),
+                                ),
+                              ),
+                            ),
+                      child: const Text(
+                        'Esqueci minha senha',
+                        style: TextStyle(color: AppColors.primary),
+                      ),
+                    ),
+                  ),
 
                   const SizedBox(height: 16),
                   _buildBotaoLogin(),

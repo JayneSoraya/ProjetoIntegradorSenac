@@ -11,6 +11,7 @@ import 'historico_screen.dart';
 import 'supermercados_screen.dart';
 import 'perfil_screen.dart';
 import '../widgets/home_quick_action_card.dart';
+import '../widgets/progresso_mapa_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -30,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool _carregando = true;
   late CarrinhoController _cart;
   bool _cartRestored = false;
+  int _progressoVersao = 0;
 
   @override
   void initState() {
@@ -83,6 +85,11 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _atualizar() {
+    if (mounted) setState(() => _progressoVersao++);
+    return _carregarResumo();
+  }
+
   @override
   void dispose() {
     _animController.dispose();
@@ -98,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen>
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: _carregarResumo,
+          onRefresh: _atualizar,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24.0),
@@ -256,7 +263,16 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 16),
 
                 // ── Progresso mapa ────────────────────────────
-                if (!_carregando && _resumo != null) _buildProgressoMapa(),
+                ProgressoMapaWidget(
+                  versao: _progressoVersao,
+                  onEscanear: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
+                    );
+                    _carregarResumo();
+                  },
+                ),
 
                 const SizedBox(height: 24),
 
@@ -303,13 +319,13 @@ class _HomeScreenState extends State<HomeScreen>
                             builder: (_) => const ScanNotaScreen(),
                           ),
                         );
-                        _carregarResumo();
+                        _atualizar();
                       },
                     ),
                     HomeQuickActionCard(
                       icon: Icons.history,
                       title: 'Histórico',
-                      subtitle: 'Suas economias',
+                      subtitle: 'Comparações e compras',
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -538,130 +554,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
       ],
-    );
-  }
-
-  // ── Progresso de contribuição do mapa de preços ───────────
-  Widget _buildProgressoMapa() {
-    final resumo = _resumo!;
-
-    final int notasValidas = resumo.totalNotasValidas;
-    final double porcentagem = resumo.progressoMapa.clamp(0.0, 1.0);
-
-    return InkWell(
-      onTap: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
-        );
-        _carregarResumo();
-      },
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.2),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.map_outlined,
-                        color: AppColors.primary,
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Mapa de preços',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${(porcentagem * 100).toInt()}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 1200),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 0, end: porcentagem),
-                builder: (context, value, _) => LinearProgressIndicator(
-                  value: value,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    notasValidas == 0
-                        ? 'Escaneie uma NFC-e válida para contribuir com preços reais do mapa.'
-                        : 'Você já contribuiu com $notasValidas ${notasValidas == 1 ? 'nota válida' : 'notas válidas'}. Comparações nunca ficam bloqueadas por gamificação.',
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 

@@ -4,6 +4,7 @@ import '../models/mercado_comparacao_dto.dart';
 import '../theme/app_theme.dart';
 import '../controller/carrinho_controller.dart';
 import '../widgets/cart_scope.dart';
+import 'compartilhar_resultado_screen.dart';
 
 typedef ComparisonLoader =
     Future<ComparacaoResultadoDTO> Function({
@@ -188,6 +189,28 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
             ...partial.map((market) => _MarketCard(market: market)),
           ],
           const SizedBox(height: 24),
+          if (best != null && result.resumo.economiaPotencial > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CompartilharResultadoScreen(
+                        mercadoEscolhido: best.nome,
+                        valorEscolhido: best.total,
+                        valorReferencia: result.resumo.mediaTresMaisCaros,
+                        economia: result.resumo.economiaPotencial,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.share_outlined),
+                  label: const Text('Compartilhar resultado'),
+                ),
+              ),
+            ),
           if (best != null)
             SizedBox(
               height: 54,
