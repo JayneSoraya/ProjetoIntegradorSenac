@@ -41,7 +41,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // NOME DO APP
               const Text(
-                'SaveMoney',
+                'EconoWay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
