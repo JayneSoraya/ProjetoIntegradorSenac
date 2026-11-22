@@ -7,7 +7,7 @@ import authRoutes from './routes/authRoutes';
 import supermercadoRoutes from './routes/supermercadoRoutes';
 import produtoRoutes from './routes/produto.routes';
 import comparacaoRoutes from './routes/comparacao.routes';
-import economiaRoutes from './routes/economiaroutes';
+import economiaRoutes from './routes/economiaRoutes';
 import adminRoutes from './routes/adminRoutes';
 import cartRoutes from './routes/cartRoutes';
 import userRoutes from './routes/userRoutes';
