@@ -13,7 +13,7 @@ import cartRoutes from './routes/cartRoutes';
 import userRoutes from './routes/userRoutes';
 import historicoRoutes from './routes/historicoRoutes';
 import progressoRoutes from './routes/progressoRoutes';
-import { baselineSecurityHeaders, browserCsrfGuard, requestAccessLog, requestContext } from './middleware/securityMiddleware';
+import { baselineSecurityHeaders, browserCsrfGuard, fixedWindowRateLimit, requestAccessLog, requestContext } from './middleware/securityMiddleware';
 import { logger } from './lib/logger';
 
 const app = express();
@@ -46,6 +46,14 @@ app.use(
 app.use('/api/supermercados', express.json({ limit: '5mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(browserCsrfGuard);
+
+// Teto geral por IP para toda a API; rotas sensíveis mantêm limites próprios mais restritos.
+app.use('/api', fixedWindowRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 900,
+  scope: 'ip',
+  message: 'Muitas requisições em pouco tempo. Aguarde alguns minutos e tente novamente.',
+}));
 
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
