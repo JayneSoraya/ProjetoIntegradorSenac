@@ -14,6 +14,31 @@ type ItemNota = {
   unidade: string;
 };
 
+function sanitizarUrlSefaz(url_qrcode: string): string {
+  if (!validarUrlSefaz(url_qrcode)) {
+    throw new Error('URL de QR Code da SEFAZ inválida ou não autorizada.');
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url_qrcode.trim());
+  } catch {
+    throw new Error('URL de QR Code da SEFAZ malformada.');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') ||
+    !hostname.endsWith('.gov.br')
+  ) {
+    throw new Error('Domínio não autorizado. Apenas portais oficiais (.gov.br) são permitidos.');
+  }
+
+  // Reconstrói a URL a partir dos componentes validados
+  const porta = parsed.port ? `:${parsed.port}` : '';
+  return `${parsed.protocol}//${hostname}${porta}${parsed.pathname}${parsed.search}`;
+}
+
 async function comTransacao<T>(
   operacao: (client: PoolClient) => Promise<T>
 ): Promise<T> {
@@ -103,9 +128,7 @@ async function resolverOuInserirProduto(
   const isEnriquecido =
     statusEnriquecimento === 'CONCLUIDO';
 
-  //
   // PRODUTO COM GTIN
-  //
   if (item.codigoBarras) {
 
     const produtoResult =
@@ -327,16 +350,14 @@ export async function processarNotaPorUrl(
   id_usuario: number,
   idNotaExistente?: number
 ) {
-  if (!validarUrlSefaz(url_qrcode)) {
-    throw new Error('URL de QR Code da SEFAZ inválida ou não autorizada.');
-  }
+  const urlSegura = sanitizarUrlSefaz(url_qrcode);
 
   let chaveNfceFallback = '';
   let valorTotalFallback = 0;
   let cnpjFallback = '';
 
   try {
-    const urlObj = new URL(url_qrcode);
+    const urlObj = new URL(urlSegura);
     const pParam = urlObj.searchParams.get('p');
 
     if (pParam) {
@@ -352,8 +373,8 @@ export async function processarNotaPorUrl(
     logger.warn('Não foi possível fazer o parsing prévio da URL do QR Code.');
   }
 
-  const resposta = await axios.get(url_qrcode, {
-    maxRedirects: 5,
+  const resposta = await axios.get(urlSegura, {
+    maxRedirects: 0,
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
@@ -430,7 +451,7 @@ export async function processarNotaPorUrl(
           idSupermercado,
           dataEmissaoDB,
           valorTotalNota,
-          chaveNfceFallback || url_qrcode,
+          chaveNfceFallback || urlSegura,
         ]
       );
 
@@ -446,7 +467,6 @@ export async function processarNotaPorUrl(
       produtosSalvos.push(item.nome);
     }
 
-    // Batch Insert otimizado na tabela nota_item
     if (itensParaInserir.length > 0) {
       const valoresSql: string[] = [];
       const parametrosSql: any[] = [];
@@ -556,7 +576,6 @@ export async function processarHtmlSefazManual(
       produtosSalvos.push(item.nome);
     }
 
-    // Batch Insert otimizado e seguro na tabela nota_item
     if (itensParaInserir.length > 0) {
       const valoresSql: string[] = [];
       const parametrosSql: any[] = [];
