@@ -26,6 +26,21 @@ const CATEGORIAS = [
   'Outros',
 ];
 
+function sanitizarUrlImagem(url: string): string | null {
+  const valorLimpo = url.trim();
+  if (!valorLimpo) return null;
+
+  try {
+    const parsed = new URL(valorLimpo);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function AdminEditarProdutoScreen() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -59,7 +74,8 @@ export function AdminEditarProdutoScreen() {
 
   if (!produtoInicial) return null;
 
-  const possuiImagem = Boolean(imagemUrl.trim()) && !erroImagemPreview;
+  const urlImagemSegura = sanitizarUrlImagem(imagemUrl);
+  const possuiImagem = Boolean(urlImagemSegura) && !erroImagemPreview;
 
   const badgeStatus = () => {
     if (statusEnriquecimento === 'CONCLUIDO') {
@@ -95,7 +111,7 @@ export function AdminEditarProdutoScreen() {
       categoria,
       peso: pesoNumerico !== null && !Number.isNaN(pesoNumerico) ? pesoNumerico : null,
       unidade_medida: unidadeMedida.trim(),
-      imagem_url: imagemUrl.trim() ? imagemUrl.trim() : null,
+      imagem_url: urlImagemSegura,
       status_enriquecimento: statusEnriquecimento,
     });
 
@@ -149,9 +165,9 @@ export function AdminEditarProdutoScreen() {
           {/* Card Superior: Badges + Preview da Imagem */}
           <div className="p-5 rounded-2xl border border-border-main bg-bg-main flex flex-col sm:flex-row items-center gap-6">
             <div className="w-32 h-32 rounded-2xl border border-border-main bg-text-main/5 flex items-center justify-center overflow-hidden shrink-0">
-              {possuiImagem ? (
+              {possuiImagem && urlImagemSegura ? (
                 <img
-                  src={imagemUrl}
+                  src={urlImagemSegura}
                   alt={nomeProduto}
                   onError={() => setErroImagemPreview(true)}
                   className="w-full h-full object-cover"
@@ -188,9 +204,11 @@ export function AdminEditarProdutoScreen() {
 
               <p className="text-xs text-text-main/60">
                 {imagemUrl.trim()
-                  ? erroImagemPreview
-                    ? 'Não foi possível carregar a URL informada.'
-                    : 'Imagem personalizada vinculada ao catálogo.'
+                  ? !urlImagemSegura
+                    ? 'URL inválida. Utilize um endereço iniciado com http:// ou https://.'
+                    : erroImagemPreview
+                      ? 'Não foi possível carregar a URL informada.'
+                      : 'Imagem personalizada vinculada ao catálogo.'
                   : 'Nenhuma URL informada — o app exibirá o placeholder da categoria.'}
               </p>
             </div>
