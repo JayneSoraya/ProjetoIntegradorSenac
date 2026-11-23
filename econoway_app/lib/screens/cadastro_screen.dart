@@ -102,7 +102,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
       appBar: AppBar(title: const Text('Cadastro')),
 
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
 
           child: Form(
@@ -200,7 +200,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   onPressed: _carregando ? null : _cadastrar,
 
                   child: _carregando
-                      ? const CircularProgressIndicator()
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text('Cadastrar'),
                 ),
               ],

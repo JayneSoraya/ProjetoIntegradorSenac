@@ -5,6 +5,8 @@ import '../theme/app_theme.dart';
 import '../controller/carrinho_controller.dart';
 import '../widgets/cart_scope.dart';
 import 'compartilhar_resultado_screen.dart';
+import '../core/format/formatadores.dart';
+import '../core/network/mensagem_erro.dart';
 
 typedef ComparisonLoader =
     Future<ComparacaoResultadoDTO> Function({
@@ -61,6 +63,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
       if (!mounted) return;
       setState(() {
         _result = result;
+        _error = null;
         _loading = false;
         _saving = false;
       });
@@ -72,7 +75,11 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = error.toString();
+        _error = mensagemDeErro(
+          error,
+          padrao:
+              'Não foi possível comparar agora. Verifique sua conexão e tente novamente.',
+        );
         _loading = false;
         _saving = false;
       });
@@ -82,7 +89,10 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: const Text('Comparando...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (_error != null && _result == null) {
       return Scaffold(
@@ -148,7 +158,7 @@ class _ComparacaoScreenState extends State<ComparacaoScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
-                  '${result.resumo.itensDesatualizadosTotal} referência(s) de preço ultrapassaram a janela de atualização do alpha. Confirme o preço no mercado antes da compra.',
+                  'Alguns preços estão desatualizados. Confirme no mercado antes de comprar.',
                   style: const TextStyle(color: Colors.brown),
                 ),
               ),
@@ -280,14 +290,14 @@ class _BestMarketCard extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          'Total: R\$ ${market.total.toStringAsFixed(2)} · Economia estimada: R\$ ${savings.toStringAsFixed(2)}',
+          'Total: ${formatarMoeda(market.total)} · Economia estimada: ${formatarMoeda(savings)}',
           style: const TextStyle(color: Colors.white),
         ),
         if (market.totalFidelidade < market.total)
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Com fidelidade: R\$ ${market.totalFidelidade.toStringAsFixed(2)}',
+              'Com fidelidade: ${formatarMoeda(market.totalFidelidade)}',
               style: const TextStyle(color: Colors.white70),
             ),
           ),
@@ -319,7 +329,7 @@ class _MarketCard extends StatelessWidget {
                 ),
               ),
               Text(
-                'R\$ ${market.total.toStringAsFixed(2)}',
+                formatarMoeda(market.total),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: market.carrinhoCompleto
@@ -335,13 +345,13 @@ class _MarketCard extends StatelessWidget {
           ),
           if (market.totalFidelidade < market.total)
             Text(
-              'Fidelidade: R\$ ${market.totalFidelidade.toStringAsFixed(2)}',
+              'Fidelidade: ${formatarMoeda(market.totalFidelidade)}',
               style: const TextStyle(color: AppColors.primary),
             ),
           if (market.itensDesatualizados > 0)
             Text(
               '${market.itensDesatualizados} preço(s) desatualizado(s)',
-              style: const TextStyle(color: Colors.amber),
+              style: TextStyle(color: Colors.orange.shade800),
             ),
           if (market.faltando.isNotEmpty) ...[
             const SizedBox(height: 8),

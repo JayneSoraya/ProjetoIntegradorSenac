@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/nota_service.dart';
 import '../theme/app_theme.dart';
+import '../core/network/mensagem_erro.dart';
 
 class ScanNotaScreen extends StatefulWidget {
   const ScanNotaScreen({super.key});
@@ -40,10 +41,23 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
     } catch (e) {
       debugPrint('Falha ao processar NFC-e: $e');
       if (!mounted) return;
-      _mostrarErro(e.toString());
+      _mostrarErro(mensagemDeErro(e));
     }
 
-    setState(() => _processando = false);
+    if (mounted) setState(() => _processando = false);
+  }
+
+  Future<void> _reiniciarLeitura() async {
+    if (!mounted) return;
+    setState(() {
+      _escaneado = false;
+      _processando = false;
+    });
+    try {
+      await _scanner.start();
+    } catch (e) {
+      debugPrint('Falha ao reiniciar a câmera: $e');
+    }
   }
 
   void _mostrarSucesso(Map<String, dynamic> data) {
@@ -99,10 +113,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _escaneado = false;
-                _processando = false;
-              });
+              _reiniciarLeitura();
             },
             child: const Text('Escanear outra'),
           ),
@@ -127,10 +138,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _escaneado = false;
-                _processando = false;
-              });
+              _reiniciarLeitura();
             },
             child: const Text('Tentar novamente'),
           ),

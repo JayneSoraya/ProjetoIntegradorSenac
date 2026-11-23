@@ -4,9 +4,43 @@ import '../theme/app_theme.dart';
 import '../services/carrinho_service.dart';
 import 'carrinho_vazio_screen.dart';
 import 'supermercados_screen.dart';
+import '../core/format/formatadores.dart';
+import '../controller/carrinho_controller.dart';
 
-class CarrinhoScreen extends StatelessWidget {
+class CarrinhoScreen extends StatefulWidget {
   const CarrinhoScreen({super.key});
+
+  @override
+  State<CarrinhoScreen> createState() => _CarrinhoScreenState();
+}
+
+class _CarrinhoScreenState extends State<CarrinhoScreen> {
+  bool _salvando = false;
+
+  Future<void> _escolherMercados(CarrinhoController cart) async {
+    if (_salvando) return;
+    setState(() => _salvando = true);
+    try {
+      await CarrinhoService.salvar(cart.itens);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              const SupermercadosScreen(selecionarParaComparacao: true),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível sincronizar o carrinho.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +72,15 @@ class CarrinhoScreen extends StatelessWidget {
                                   children: [
                                     Text(
                                       item.nomeProduto,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'R\$ ${item.preco.toStringAsFixed(2)} por unidade',
+                                      '${formatarMoeda(item.preco)} por unidade',
                                       style: const TextStyle(
                                         color: Colors.grey,
                                       ),
@@ -55,6 +91,7 @@ class CarrinhoScreen extends StatelessWidget {
                               IconButton(
                                 onPressed: () =>
                                     cart.decrementar(item.idProduto),
+                                visualDensity: VisualDensity.compact,
                                 icon: const Icon(Icons.remove_circle_outline),
                               ),
                               Text(
@@ -66,10 +103,12 @@ class CarrinhoScreen extends StatelessWidget {
                               IconButton(
                                 onPressed: () =>
                                     cart.incrementar(item.idProduto),
+                                visualDensity: VisualDensity.compact,
                                 icon: const Icon(Icons.add_circle_outline),
                               ),
                               IconButton(
                                 onPressed: () => cart.remover(item.idProduto),
+                                visualDensity: VisualDensity.compact,
                                 icon: const Icon(
                                   Icons.delete_outline,
                                   color: Colors.redAccent,
@@ -103,9 +142,15 @@ class CarrinhoScreen extends StatelessWidget {
                             '${cart.quantidadeTotal} item(ns)',
                             style: const TextStyle(color: Colors.grey),
                           ),
-                          Text(
-                            'Subtotal estimado R\$ ${cart.total.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              'Subtotal estimado ${formatarMoeda(cart.total)}',
+                              textAlign: TextAlign.end,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -114,29 +159,9 @@ class CarrinhoScreen extends StatelessWidget {
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
-                          onPressed: () async {
-                            try {
-                              await CarrinhoService.salvar(cart.itens);
-                              if (!context.mounted) return;
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SupermercadosScreen(
-                                    selecionarParaComparacao: true,
-                                  ),
-                                ),
-                              );
-                            } catch (_) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Não foi possível sincronizar o carrinho.',
-                                  ),
-                                ),
-                              );
-                            }
-                          },
+                          onPressed: _salvando
+                              ? null
+                              : () => _escolherMercados(cart),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,

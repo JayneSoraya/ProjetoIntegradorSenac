@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../controller/comparacao_controller.dart';
 import '../widgets/estado_tela.dart';
 import 'historico_compras_screen.dart';
+import '../core/format/formatadores.dart';
+import '../core/network/mensagem_erro.dart';
 
 class HistoricoScreen extends StatefulWidget {
   const HistoricoScreen({super.key});
@@ -11,6 +13,7 @@ class HistoricoScreen extends StatefulWidget {
 
 class _HistoricoScreenState extends State<HistoricoScreen> {
   bool _loading = true;
+  String? _erro;
   List<Map<String, dynamic>> _items = [];
   @override
   void initState() {
@@ -19,16 +22,27 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   }
 
   Future<void> _load() async {
+    if (_erro != null) setState(() => _erro = null);
     try {
       final data = await ComparacaoController().historico();
       if (mounted) {
         setState(() {
           _items = data;
+          _erro = null;
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _erro = mensagemDeErro(
+            error,
+            padrao:
+                'Não foi possível carregar o histórico. Verifique sua conexão e tente novamente.',
+          );
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -51,6 +65,8 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     ),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
+        : _erro != null
+        ? EstadoErro(mensagem: _erro!, onTentarNovamente: _load)
         : _items.isEmpty
         ? EstadoVazio(
             icone: Icons.compare_arrows,
@@ -88,9 +104,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                       item['valor_mercado_escolhido']?.toString() ?? '',
                     ) ??
                     0;
-                final date = DateTime.tryParse(
-                  item['data_comparacao']?.toString() ?? '',
-                );
+                final date = formatarData(item['data_comparacao'], vazio: '');
                 return Card(
                   child: ListTile(
                     title: Text(
@@ -98,18 +112,18 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                           'Comparação',
                     ),
                     subtitle: Text(
-                      '${date == null ? '' : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} · '}${item['total_itens'] ?? 0} item(ns)',
+                      '${date.isEmpty ? '' : '$date · '}${item['total_itens'] ?? 0} item(ns)',
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'R\$ ${total.toStringAsFixed(2)}',
+                          formatarMoeda(total),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          'Economia R\$ ${economy.toStringAsFixed(2)}',
+                          'Economia ${formatarMoeda(economy)}',
                           style: const TextStyle(
                             fontSize: 11,
                             color: Colors.green,

@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/produto_card.dart';
 import 'carrinho_screen.dart';
 import 'historico_preco_screen.dart';
+import '../core/format/formatadores.dart';
 
 class ProdutosScreen extends StatefulWidget {
   const ProdutosScreen({super.key});
@@ -232,7 +233,7 @@ class _ProdutosScreenState extends State<ProdutosScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'Estimativa atual: R\$ ${cart.total.toStringAsFixed(2)}',
+                                  'Estimativa atual: ${formatarMoeda(cart.total)}',
                                   style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 12,

@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/perfil_service.dart';
 import '../theme/app_theme.dart';
 import 'welcome_screen.dart';
+import '../core/network/mensagem_erro.dart';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -94,7 +95,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Seus dados foram copiados em JSON.')),
+        const SnackBar(content: Text('Seus dados foram copiados.')),
       );
     } catch (_) {
       if (!mounted) return;
@@ -125,7 +126,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Esta ação remove a conta e os dados vinculados pelas regras de cascata do banco. Confirme sua senha para continuar.',
+              'Esta ação exclui sua conta e todos os dados vinculados a ela, e não pode ser desfeita. Confirme sua senha para continuar.',
             ),
             const SizedBox(height: 16),
             TextField(
@@ -167,7 +168,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(mensagemDeErro(error))));
     }
   }
 
@@ -276,7 +277,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   ),
                   title: const Text('Exportar meus dados'),
                   subtitle: const Text(
-                    'Copia um snapshot JSON para a área de transferência.',
+                    'Copia uma cópia dos seus dados para a área de transferência.',
                   ),
                   onTap: _copiarExportacao,
                 ),

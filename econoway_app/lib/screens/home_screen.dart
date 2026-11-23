@@ -12,6 +12,7 @@ import 'supermercados_screen.dart';
 import 'perfil_screen.dart';
 import '../widgets/home_quick_action_card.dart';
 import '../widgets/progresso_mapa_widget.dart';
+import '../core/format/formatadores.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -128,9 +129,16 @@ class _HomeScreenState extends State<HomeScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Olá, ${widget.nomeUsuario}!',
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
+                    Expanded(
+                      child: Text(
+                        'Olá, ${widget.nomeUsuario}!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
                     Row(
                       children: [
@@ -377,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen>
           AnimatedBuilder(
             animation: _economiaAnim,
             builder: (_, _) => Text(
-              'R\$ ${_economiaAnim.value.toStringAsFixed(2)}',
+              formatarMoeda(_economiaAnim.value),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 42,
@@ -494,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'R\$ ${_resumo!.economiaMes.toStringAsFixed(2)}',
+                  formatarMoeda(_resumo!.economiaMes),
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 20,

@@ -5,6 +5,7 @@ import '../services/supermercado_service.dart';
 import '../theme/app_theme.dart';
 import 'comparacao_screen.dart';
 import '../widgets/cart_scope.dart';
+import '../widgets/estado_tela.dart';
 
 class SupermercadosScreen extends StatefulWidget {
   final bool selecionarParaComparacao;
@@ -18,6 +19,7 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
   List<SupermercadoDTO> _mercados = [];
   final Set<int> _selecionados = {};
   bool _carregando = true;
+  String? _erro;
   bool _localizacaoAtiva = false;
   String _busca = '';
   String _filtro = 'Todos';
@@ -29,6 +31,12 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
   }
 
   Future<void> _carregar() async {
+    if (_erro != null) {
+      setState(() {
+        _erro = null;
+        _carregando = true;
+      });
+    }
     try {
       final position = await _obterLocalizacao();
       final result = await SupermercadoService.listar(
@@ -38,16 +46,23 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
       if (!mounted) return;
       setState(() {
         _mercados = result;
+        _erro = null;
         _carregando = false;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() => _carregando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível carregar os supermercados.'),
-        ),
-      );
+      const mensagem = 'Não foi possível carregar os supermercados.';
+      if (_mercados.isEmpty) {
+        setState(() {
+          _erro = mensagem;
+          _carregando = false;
+        });
+      } else {
+        setState(() => _carregando = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text(mensagem)));
+      }
     }
   }
 
@@ -67,6 +82,7 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 5),
         ),
       );
       if (mounted) setState(() => _localizacaoAtiva = true);
@@ -168,7 +184,7 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            if (!_carregando)
+            if (!_carregando && _erro == null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(
@@ -184,6 +200,8 @@ class _SupermercadosScreenState extends State<SupermercadosScreen> {
             Expanded(
               child: _carregando
                   ? const Center(child: CircularProgressIndicator())
+                  : _erro != null
+                  ? EstadoErro(mensagem: _erro!, onTentarNovamente: _carregar)
                   : visible.isEmpty
                   ? Center(
                       child: Padding(
