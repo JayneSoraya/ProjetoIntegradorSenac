@@ -1,5 +1,10 @@
 # Changelog da documentação
 
+## 2026-08-11 — Fase 6
+
+- Documentado o script de execução física determinística e o diagnóstico de history/partial.
+- Registrada a migração do Cart State para `CartScope` e a extração do card de ações da Home.
+
 ## 2026-08-10 — Alpha 0.4.0-alpha.4
 
 - extraída a camada de economia para `EconomyService`, mantendo controllers sem SQL;
@@ -41,7 +46,3 @@
 - documentado threat model e baseline de segurança;
 - revisadas as 13 telas prototipadas;
 - criado roadmap por fases e matriz de rastreabilidade.
-# 2026-08-11 — Fase 6
-
-- Documentado o script de execução física determinística e o diagnóstico de history/partial.
-- Registrada a migração do Cart State para `CartScope` e a extração do card de ações da Home.
