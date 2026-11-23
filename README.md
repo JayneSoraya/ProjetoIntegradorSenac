@@ -21,7 +21,7 @@ Projeto Integrador · Análise e Desenvolvimento de Sistemas · Centro Universit
 
 ---
 
-## Demonstração
+## 📱 Demonstração
 
 <table>
   <tr>
@@ -70,13 +70,13 @@ Na captura da comparação, só um mercado tem todos os itens: por isso a econom
 
 ---
 
-## O problema
+## ‼️ O problema
 
 Quem faz compras de mercado costuma comparar preços produto por produto, em panfletos, aplicativos e sites diferentes. Isso toma tempo e engana: o mercado mais barato para um item nem sempre é o mais barato para a compra inteira, e um mercado que não tem todos os produtos pode parecer mais barato só porque está faltando algo na conta.
 
 O EconoWay compara **a cesta completa** e deixa claro quando um mercado não tem todos os itens.
 
-## Funcionalidades
+## ⚙️ Funcionalidades
 
 ### Implementadas nesta prova de conceito
 
@@ -126,7 +126,7 @@ Detalhes em [`docs/product/comparison-strategy.md`](docs/product/comparison-stra
 
 ---
 
-## Tecnologias e arquitetura
+## ⚒️ Tecnologias e arquitetura
 
 | Camada | Tecnologias |
 | --- | --- |
@@ -172,7 +172,7 @@ A API é um monólito modular, organizado em rotas, controladores, serviços, re
 </details>
 <!--END_LANGS-->
 
-## Estrutura do repositório
+## 📝 Estrutura do repositório
 
 ```text
 econoway_app/    Aplicativo Flutter (Android)
@@ -185,7 +185,7 @@ compose.yaml     Ambiente local: banco, API e portal
 
 ---
 
-## Como executar
+## 💻 Como executar
 
 ### Pré-requisitos
 
@@ -227,7 +227,7 @@ Passo a passo completo e solução de problemas: [`docs/operations/local-develop
 
 ---
 
-## Testes e qualidade
+## 📊 Testes e qualidade
 
 Cada pull request e cada push em `main`, `Jayne` e `Diego` executam o workflow de [CI](.github/workflows/ci.yml):
 
@@ -250,7 +250,7 @@ Os resultados da segunda entrega, incluindo o teste ponta a ponta da API e o tes
 
 ---
 
-## Documentação
+## 📋 Documentação
 
 | Documento | Conteúdo |
 | --- | --- |
@@ -263,7 +263,7 @@ Os resultados da segunda entrega, incluindo o teste ponta a ponta da API e o tes
 
 Os documentos acadêmicos das entregas anteriores (DOCX e PDF) estão em [`docs/`](docs/). Os relatórios de execução de agosto de 2026 ficam em [`docs/roadmap/`](docs/roadmap/) como registro histórico.
 
-## Limitações conhecidas
+## 🛑 Limitações conhecidas
 
 - Os dados exibidos na demonstração são de teste: dois mercados e poucos produtos.
 - A recuperação de senha ainda não envia e-mail.
@@ -273,7 +273,7 @@ Os documentos acadêmicos das entregas anteriores (DOCX e PDF) estão em [`docs/
 
 ---
 
-## Integrantes
+## 👥 Integrantes
 
 | [<img src="https://avatars.githubusercontent.com/u/67378860?v=4" width=115 alt="Foto de Jayne Soraya"><br><sub>**Jayne Soraya**</sub>](https://github.com/JayneSoraya) | [<img src="https://avatars.githubusercontent.com/u/85366337?v=4" width=115 alt="Foto de Diego Rodrigues"><br><sub>**Diego Rodrigues**</sub>](https://github.com/Yurtachi) | [<img src="https://avatars.githubusercontent.com/u/75775034?v=4" width=115 alt="Foto de Vinícius Santos"><br><sub>**Vinícius Santos**</sub>](https://github.com/itvinl) |
 | :---: | :---: | :---: |
@@ -281,6 +281,6 @@ Os documentos acadêmicos das entregas anteriores (DOCX e PDF) estão em [`docs/
 
 Sugestões e correções são bem-vindas por issue ou pull request, seguindo o [guia de contribuição](CONTRIBUTING.md).
 
-## Licença
+## 🗝️ Licença
 
 **Os termos de uso ainda estão em definição pelos integrantes.** O arquivo [`LICENSE`](LICENSE) traz, em formato de rascunho, uma proposta de licença restritiva (uso não comercial, repasse de melhorias e royalties em caso de uso comercial), que ainda precisa de revisão de titularidade e de redação final. Até essa definição, o código não deve ser considerado de licença aberta. O pacote da API está marcado como `UNLICENSED`.
