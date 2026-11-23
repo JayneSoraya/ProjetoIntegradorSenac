@@ -20,44 +20,44 @@ if total_bytes == 0:
     print("Nenhuma linguagem encontrada.")
     exit(0)
 
-# Mapeamento de ícones do Devicon para cada linguagem
-icon_mapping = {
-    "Dart": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/dart/dart-original.svg",
-    "TypeScript": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg",
-    "C++": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cplusplus/cplusplus-original.svg",
-    "CMake": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/cmake/cmake-original.svg",
-    "CSS": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg",
-    "HTML": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/html5/html5-original.svg",
-    "JavaScript": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/javascript/javascript-original.svg",
-    "Python": "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/python/python-original.svg"
+# Papel de cada linguagem no repositório. Linguagens geradas pelo Flutter para
+# outras plataformas (Windows, Linux, macOS, iOS) não são tecnologias do produto.
+roles = {
+    "Dart": "Aplicativo Android (Flutter)",
+    "TypeScript": "API Node.js e portal web React",
+    "JavaScript": "Configuração de ferramentas",
+    "CSS": "Estilos do portal web",
+    "HTML": "Páginas e relatórios estáticos",
+    "Python": "Scripts de verificação e automação",
+    "PowerShell": "Scripts de teste no Android",
+    "PLpgSQL": "Migrations do PostgreSQL",
+    "Dockerfile": "Imagens dos contêineres",
 }
-
-# Descrições padrão para as principais linguagens
-descriptions = {
-    "Dart": "Core do Aplicativo Mobile Flutter.",
-    "TypeScript": "Lógica do Backend e API Node.js.",
-    "C++": "Integração nativa do motor do Flutter.",
-    "CMake": "Gerenciamento de compilação nativa.",
-    "CSS": "Estilização web.",
-    "HTML": "Estruturação de páginas."
-}
+generated = {"C++", "C", "CMake", "Swift", "Kotlin", "Objective-C", "Ruby"}
 
 # Ordena da maior para a menor porcentagem
 sorted_langs = sorted(languages_data.items(), key=lambda item: item[1], reverse=True)
 
-new_langs_lines = []
+rows = []
 for lang, bytes_count in sorted_langs:
     percentage = (bytes_count / total_bytes) * 100
     if percentage < 0.5:  # ignora linguagens com menos de 0.5%
         continue
-    icon_url = icon_mapping.get(lang, "https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/code/code-original.svg")
-    desc = descriptions.get(lang, "Código fonte do projeto.")
-    
-    line = f'- <img src="{icon_url}" width="24" height="24" /> **{lang} ({percentage:.1f}%)** — {desc}'
-    new_langs_lines.append(line)
+    if lang in generated:
+        role = "Arquivos gerados pelo Flutter para outras plataformas"
+    else:
+        role = roles.get(lang, "Outros arquivos do repositório")
+    rows.append(f"| {lang} | {percentage:.1f}% | {role} |")
 
 # Bloco formatado em Markdown
-generated_block = "🛠️ **Linguagens e Base**:\n" + "\n".join(new_langs_lines)
+generated_block = (
+    "<details>\n"
+    "<summary>Composição do repositório por linguagem (atualizada automaticamente)</summary>\n\n"
+    "| Linguagem | Participação | Uso no projeto |\n"
+    "| --- | ---: | --- |\n"
+    + "\n".join(rows)
+    + "\n\n</details>"
+)
 
 # Lê o README.md atual e substitui a seção entre marcadores ou reconstrói
 with open("README.md", "r", encoding="utf-8") as f:
