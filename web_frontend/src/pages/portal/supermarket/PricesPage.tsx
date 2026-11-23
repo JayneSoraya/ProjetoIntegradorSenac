@@ -24,6 +24,7 @@ export function PricesPage({ user }: { user: PortalUser }) {
         setMarkets(items);
         if (!params.get('market') && items[0]) setParams({ market: String(items[0].id_supermercado) }, { replace: true });
       })
+      .catch(() => setMessage('Não foi possível carregar seus supermercados.'))
       .finally(() => setLoading(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -50,7 +50,7 @@ export function PortalShell({ user, title, subtitle, children, mode }: PortalShe
             </NavLink>
           ))}
         </nav>
-        <div className="mt-6 hidden rounded-2xl border border-border-main p-4 lg:block">
+        <div className="mt-6 rounded-2xl border border-border-main p-4">
           <p className="font-semibold text-text-heading">{user.nome}</p><p className="mt-1 break-all text-xs">{user.email}</p>
           <button onClick={leave} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-red-600"><LogOut size={16}/> Sair</button>
         </div>
