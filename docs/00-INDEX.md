@@ -86,12 +86,22 @@
 - [[operations/alpha-runbook|Runbook Alpha]]
 - [[operations/validation-checklist|Checklist de validação]]
 - [[operations/release-checklist|Checklist de release]]
+- [[operations/android-physical-device-development|Android em dispositivo físico]]
+- [[operations/flutter-integration-test-troubleshooting|Diagnóstico do integration_test Flutter]]
 
 ## Roadmap e relatórios
 
 - [[roadmap/implementation-roadmap|Roadmap completo]]
 - [[roadmap/execution-report-2026-08-10-alpha4|Execução Alpha 4]]
 - [[roadmap/execution-report-2026-08-10|Execução inicial]]
+- [[roadmap/execution-report-2026-08-10-fase2|Fase 2 — Validação do runtime Alpha]]
+- [[roadmap/execution-report-2026-08-10-continuacao|Continuação — Validação do runtime Alpha]]
+- [[roadmap/execution-report-2026-08-10-fase3|Fase 3 — Fluxo do usuário Android e Beta readiness]]
+- [[roadmap/execution-report-2026-08-10-fase4|Fase 4 — VM Service, Android E2E e UX]]
+- [[roadmap/execution-report-2026-08-10-fase5|Fase 5 — Dispositivo físico, E2E e UX]]
+- [[roadmap/execution-report-2026-08-11-fase6|Fase 6 — E2E determinístico, Cart State e Home]]
+- [[roadmap/execution-log-current|Log de execução (Fase 0 em diante)]]
+- [[roadmap/execution-log-2026-08-10-continuation|Log de execução — continuação (Fase 2)]]
 - [[roadmap/artifact-change-summary|Resumo inicial de alterações]]
 - [[CHANGELOG-DOCS|Changelog]]
 
