@@ -172,12 +172,16 @@ Resultados das execuções de 22/11/2026, na branch `Diego`:
 | Web `npm audit --audit-level=high` | 0 vulnerabilidades |
 | `dart format --set-exit-if-changed` | nenhum arquivo fora do padrão |
 | `flutter analyze` | sem problemas |
-| `flutter test` | 21 testes, 21 aprovados |
+| `flutter test` | 23 testes, 23 aprovados (inclui telas em 320x568 sem overflow) |
+| `flutter build apk` (debug e profile) | gerados com sucesso |
+| CI no GitHub (sanity, backend, web, Android/Flutter) e CodeQL | aprovados |
 | Stack local (banco, API, portal) | banco saudável, `/api/ready` respondendo, portal HTTP 200 |
 | Teste ponta a ponta da API (fluxo da PoC e casos alternativos) | 21 verificações, 21 aprovadas |
 | Cesta parcial | mercado incompleto mais barato não foi eleito; item faltante identificado |
 | Conta bloqueada pelo administrador | token ainda válido passou a receber 401; novo login recebe 403 |
 | Histórico de compras de outro usuário | 404 (sem acesso a dados de terceiros) |
+
+**Teste no emulador Android (API 34)** com o APK gerado e a API local: abertura, login, busca, carrinho, seleção de mercados, comparação com cesta parcial identificada, salvar e histórico funcionaram. Capturas em [`evidencias/`](evidencias/).
 
 O teste ponta a ponta cobre cadastro, cadastro duplicado, senha incorreta, login, token adulterado, acesso sem token, busca, mercados, carrinho vazio, carrinho persistido, comparação, salvar, histórico, detalhe, identificador inválido e permissões de usuário comum e administrador.
 
@@ -215,11 +219,13 @@ Execução sem contêineres e detalhes: [`docs/operations/local-development.md`]
 - Não existe histórico de variação de preço ao longo do tempo; a tela de preços mostra os preços atuais e as compras do próprio usuário.
 - O banco Neon compartilhado não recebeu as migrations da PoC; antes disso o schema real precisa ser comparado ([`docs/database/current-schema.md`](../database/current-schema.md)).
 - A edição de produtos pelo administrador (issue #34) está em desenvolvimento em outra branch e ainda precisa ser adaptada à arquitetura atual antes da integração.
-- Os testes no aplicativo foram automatizados (unidade e widget); a validação manual em aparelho depende de dispositivo disponível no momento da gravação.
+- O aplicativo foi validado em emulador; não houve teste em aparelho físico nesta rodada.
 
 ## 14. Vídeo demonstrativo (até 1 minuto)
 
-Roteiro sugerido, gravado a partir da aplicação real com a stack local:
+Arquivo: [`econoway-demo.mp4`](econoway-demo.mp4) (54 s). Gravado na tela do emulador com o aplicativo real conectado à API e ao banco locais; sem áudio. Os trechos em que a tela ficava parada entre uma ação e outra foram acelerados, sem alterar o conteúdo, e o último quadro (histórico) foi mantido por alguns segundos. Os produtos e mercados são dados de demonstração.
+
+Roteiro:
 
 | Tempo | Cena |
 |---|---|
