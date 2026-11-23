@@ -1,15 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "es2022",
     "module": "commonjs",
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["jest", "node"]
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "db.js"]
 }

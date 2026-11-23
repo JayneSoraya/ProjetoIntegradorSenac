@@ -1,23 +1,15 @@
 import { Request, Response } from 'express';
+import { logger } from '../lib/logger';
 import { ProgressoService } from '../services/progressoService';
-import { logger } from '../utils/logger';
 
-// GET /api/progresso
-export const buscarProgresso = async (req: Request, res: Response) => {
-  if (!req.usuario) {
-    return res.status(401).json({ erro: 'Usuário não autenticado.' });
-  }
-
-  const { id_usuario } = req.usuario;
+export async function buscarProgresso(req: Request, res: Response) {
+  const userId = req.auth?.userId;
+  if (!userId) return res.status(403).json({ erro: 'Progresso disponível apenas para usuários.' });
 
   try {
-    if (!id_usuario) {
-  return res.status(400).json({ erro: 'ID do usuário não encontrado na sessão.' });
-}
-    const dadosProgresso = await ProgressoService.buscarProgressoZeigarnik(id_usuario);
-    return res.status(200).json(dadosProgresso);
-  } catch (erro: any) {
-    logger.error('❌ Erro ao buscar progresso:', { erro: erro.message });
+    return res.status(200).json(await ProgressoService.buscarProgresso(userId));
+  } catch (error) {
+    logger.error('progresso_failed', error, { requestId: req.requestId, userId });
     return res.status(500).json({ erro: 'Erro ao buscar progresso.' });
   }
-};
+}

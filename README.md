@@ -43,16 +43,16 @@ O banco Neon, o deploy HTTPS, o monitoramento e os backups de produção ainda p
 - <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/css3/css3-original.svg" width="24" height="24" /> **CSS (0.6%)** — Estilização web.
 <!--END_LANGS-->
 
-📱 **Mobile (Aplicativo):**  
+📱 **Mobile (Aplicativo):**\
 Flutter | Dart | Provider/Controller | Secure Session Storage | Camera & NFC-e Scanner
 
-🖼️ **Front-end Web (Portal & Landing Page):**  
+🖼️ **Front-end Web (Portal & Landing Page):**\
 React | Vite | TypeScript | Tailwind CSS | Framer Motion | Lucide Icons | Axios
 
-⚙️ **Back-end (Servidor e API REST):**  
+⚙️ **Back-end (Servidor e API REST):**\
 Node.js | Express | TypeScript | JWT Auth | Security Middleware & CSRF | REST API Contract
 
-🗄️ **Banco de Dados, DevOps & Infraestrutura:**  
+🗄️ **Banco de Dados, DevOps & Infraestrutura:**\
 PostgreSQL | Neon Serverless | Firebird DB | Docker Compose | GitHub Actions (CI & CodeQL)
 
 - `econoway_app/`: aplicativo Flutter para Android;
@@ -64,9 +64,15 @@ PostgreSQL | Neon Serverless | Firebird DB | Docker Compose | GitHub Actions (CI
 
 ---
 
+## Segunda entrega (PoC)
+
+O documento da entrega — objetivo da PoC, arquitetura, modelo de dados, organização do código, testes, execução e limitações — está em [`docs/entrega/segunda-entrega-poc.md`](docs/entrega/segunda-entrega-poc.md).
+
+---
+
 ## Pré-requisitos
 
-- Docker Desktop com Compose;
+- um ambiente de contêineres compatível com Compose (Docker ou equivalente);
 - Flutter 3.44 ou superior e Android SDK para o aplicativo;
 - Node.js 20 ou superior para trabalhar diretamente na API ou no frontend;
 - um dispositivo Android com depuração USB ou um emulador, quando for testar o aplicativo.
@@ -77,7 +83,7 @@ Copie o arquivo de exemplo, preencha os valores locais e suba a stack:
 
 ```bash
 cp .env.compose.example .env.compose
-docker compose --env-file .env.compose up --build
+docker compose --env-file .env.compose up --build -d
 ```
 
 API:
@@ -133,7 +139,7 @@ Os relatórios de cada rodada ficam em `docs/roadmap/`.
 - testes de integração cobrem autenticação, carrinho, comparação, histórico e comparação parcial;
 - o script de execução no Android físico passou a validar dispositivo autorizado, API e cenário antes de instalar o app.
 
-O registro completo está em [`docs/roadmap/execution-report-2026-08-11-codex-phase6.md`](docs/roadmap/execution-report-2026-08-11-codex-phase6.md).
+O registro completo está em [`docs/roadmap/execution-report-2026-08-11-fase6.md`](docs/roadmap/execution-report-2026-08-11-fase6.md).
 
 ## Segurança e banco
 

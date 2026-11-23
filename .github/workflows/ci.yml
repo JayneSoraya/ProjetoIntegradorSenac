@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, Jayne]
+    branches: [main, Jayne, Diego]
 
 permissions:
   contents: read
@@ -64,9 +64,11 @@ jobs:
         working-directory: econoway_app
     steps:
       - uses: actions/checkout@v6
-      - name: Install Flutter stable
+      - name: Install Flutter 3.44.8
+        # Versão fixa, igual à usada no desenvolvimento, para que novas depreciações
+        # do canal stable não quebrem o build sem uma migração planejada.
         run: |
-          git clone --depth 1 --branch stable https://github.com/flutter/flutter.git "$HOME/flutter"
+          git clone --depth 1 --branch 3.44.8 https://github.com/flutter/flutter.git "$HOME/flutter"
           echo "$HOME/flutter/bin" >> "$GITHUB_PATH"
       - run: flutter config --no-analytics
       - run: flutter --version

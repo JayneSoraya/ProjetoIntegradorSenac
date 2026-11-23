@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+import '../core/format/formatadores.dart';
+
 class ProdutoCard extends StatelessWidget {
   final String nome;
   final String marca;
@@ -9,6 +12,7 @@ class ProdutoCard extends StatelessWidget {
 
   final VoidCallback onAdicionar;
   final VoidCallback onRemover;
+  final VoidCallback? onVerPrecos;
 
   const ProdutoCard({
     super.key,
@@ -19,6 +23,7 @@ class ProdutoCard extends StatelessWidget {
     required this.quantidade,
     required this.onAdicionar,
     required this.onRemover,
+    this.onVerPrecos,
   });
 
   @override
@@ -58,8 +63,10 @@ class ProdutoCard extends StatelessWidget {
               children: [
                 Text(
                   nome,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -68,8 +75,41 @@ class ProdutoCard extends StatelessWidget {
 
                 Text(
                   '$marca • $peso',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
+
+                if (onVerPrecos != null)
+                  InkWell(
+                    onTap: onVerPrecos,
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.storefront_outlined,
+                            size: 15,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              'Preços por mercado',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -78,10 +118,10 @@ class ProdutoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                'R\$ ${preco.toStringAsFixed(2)}',
+                formatarMoeda(preco),
                 style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 22,
+                  color: AppColors.primary,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),

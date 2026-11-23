@@ -2,9 +2,9 @@ class CarrinhoItem {
   final int idProduto;
   final String nomeProduto;
   final double preco;
-  int quantidade;
+  final int quantidade;
 
-  CarrinhoItem({
+  const CarrinhoItem({
     required this.idProduto,
     required this.nomeProduto,
     required this.preco,
@@ -12,4 +12,11 @@ class CarrinhoItem {
   });
 
   double get total => preco * quantidade;
+
+  CarrinhoItem copyWith({int? quantidade}) => CarrinhoItem(
+    idProduto: idProduto,
+    nomeProduto: nomeProduto,
+    preco: preco,
+    quantidade: quantidade ?? this.quantidade,
+  );
 }

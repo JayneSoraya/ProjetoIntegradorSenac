@@ -142,7 +142,6 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       validator: (v) {
         if (v == null || v.isEmpty) return 'Informe sua senha';
-        if (v.length < 6) return 'Mínimo de 6 caracteres';
         return null;
       },
     );
@@ -195,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   const Text(
-                    'SaveMoney',
+                    'EconoWay',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 28,
@@ -218,19 +217,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 16),
 
                   _buildSenhaField(),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
 
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecuperarSenhaScreen(),
-                          ),
-                        );
-                      },
+                      onPressed: _carregando
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RecuperarSenhaScreen(
+                                  emailInicial: _emailController.text.trim(),
+                                ),
+                              ),
+                            ),
                       child: const Text(
                         'Esqueci minha senha',
                         style: TextStyle(color: AppColors.primary),

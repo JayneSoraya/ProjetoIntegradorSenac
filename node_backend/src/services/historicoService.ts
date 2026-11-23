@@ -1,172 +1,278 @@
 import { pool } from '../database';
+import { Paginacao, arredondarMoeda, subtotalItem, totalDaNota } from '../domain/historico';
+
+export interface CompraResumo {
+  id_nota: number;
+  data_compra: string | null;
+  id_supermercado: number;
+  supermercado: string;
+  total: number;
+  total_itens: number;
+}
+
+export interface CompraItem {
+  id_nota_item: number;
+  id_produto: number | null;
+  nome_produto: string;
+  codigo_barras: string | null;
+  categoria: string | null;
+  unidade: string | null;
+  quantidade: number;
+  preco_unitario: number;
+  subtotal: number;
+}
+
+export interface CompraDetalhe {
+  nota: {
+    id_nota: number;
+    data_compra: string | null;
+    id_supermercado: number;
+    supermercado: string;
+    endereco: string | null;
+    total: number;
+    total_itens: number;
+  };
+  itens: CompraItem[];
+}
+
+export interface HistoricoPrecoProduto {
+  produto: {
+    id_produto: number;
+    nome_produto: string;
+    marca: string | null;
+    categoria: string | null;
+  };
+  precos_atuais: Array<{
+    id_supermercado: number;
+    supermercado: string;
+    preco_atual: number;
+    preco_fidelidade: number | null;
+    fonte: string;
+    data_atualizacao: string | null;
+  }>;
+  minhas_compras: Array<{
+    id_nota: number;
+    id_supermercado: number;
+    supermercado: string;
+    data_compra: string | null;
+    quantidade: number;
+    preco_unitario: number;
+  }>;
+}
+
+function toIso(value: Date | string | null): string | null {
+  if (value == null) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
 
 export class HistoricoService {
-  static async listarPorUsuario(idUsuario: number) {
-    const resultado = await pool.query(
-      `
-      SELECT
-        nf.id_nota,
-        nf.data_compra,
-        nf.valor_total,
-        nf.chave_nfce,
-        s.nome_fantasia   AS supermercado,
-        s.endereco_completo,
-        COUNT(ni.id_item) AS total_itens
-      FROM nota_fiscal nf
-      INNER JOIN supermercado s ON s.id_supermercado = nf.id_supermercado
-      LEFT JOIN nota_item ni ON ni.id_nota = nf.id_nota
-      WHERE nf.id_usuario = $1
-      GROUP BY
-        nf.id_nota,
-        nf.data_compra,
-        nf.valor_total,
-        nf.chave_nfce,
-        s.nome_fantasia,
-        s.endereco_completo
-      ORDER BY nf.data_compra DESC
-      `,
-      [idUsuario]
+  /** Notas fiscais válidas importadas pelo usuário, da mais recente para a mais antiga. */
+  static async listarCompras(userId: number, paginacao: Paginacao): Promise<CompraResumo[]> {
+    const result = await pool.query<{
+      id_nota: number;
+      data_compra: Date | string | null;
+      id_supermercado: number;
+      supermercado: string;
+      total: string | number;
+      total_itens: number;
+    }>(
+      `SELECT
+         n.id_nota,
+         COALESCE(n.data_emissao, n.processada_em) AS data_compra,
+         s.id_supermercado,
+         s.nome_fantasia AS supermercado,
+         COALESCE(SUM(ROUND(ni.quantidade * ni.preco_unitario, 2)), 0) AS total,
+         COUNT(ni.id_nota_item) AS total_itens
+       FROM nota_fiscal n
+       INNER JOIN supermercado s ON s.id_supermercado = n.id_supermercado
+       LEFT JOIN nota_item ni ON ni.id_nota = n.id_nota
+       WHERE n.id_usuario = $1
+         AND n.status = 'VALIDA'
+       GROUP BY n.id_nota, s.id_supermercado, s.nome_fantasia
+       ORDER BY COALESCE(n.data_emissao, n.processada_em) DESC, n.id_nota DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, paginacao.limite, paginacao.deslocamento],
     );
-    return resultado.rows;
+
+    return result.rows.map((row) => ({
+      id_nota: row.id_nota,
+      data_compra: toIso(row.data_compra),
+      id_supermercado: row.id_supermercado,
+      supermercado: row.supermercado,
+      total: arredondarMoeda(Number(row.total)),
+      total_itens: Number(row.total_itens),
+    }));
   }
 
-  static async detalharCompra(idNota: string, idUsuario: number) {
-    const notaExiste = await pool.query(
-      `SELECT id_nota FROM nota_fiscal WHERE id_nota = $1 AND id_usuario = $2`,
-      [idNota, idUsuario]
+  /** Detalhe de uma nota. Retorna null quando a nota não existe ou pertence a outro usuário. */
+  static async detalharCompra(userId: number, idNota: number): Promise<CompraDetalhe | null> {
+    const header = await pool.query<{
+      id_nota: number;
+      data_compra: Date | string | null;
+      id_supermercado: number;
+      supermercado: string;
+      endereco: string | null;
+    }>(
+      `SELECT
+         n.id_nota,
+         COALESCE(n.data_emissao, n.processada_em) AS data_compra,
+         s.id_supermercado,
+         s.nome_fantasia AS supermercado,
+         s.endereco_completo AS endereco
+       FROM nota_fiscal n
+       INNER JOIN supermercado s ON s.id_supermercado = n.id_supermercado
+       WHERE n.id_nota = $1
+         AND n.id_usuario = $2
+         AND n.status = 'VALIDA'`,
+      [idNota, userId],
     );
 
-    if (notaExiste.rows.length === 0) {
-      return null;
-    }
+    const nota = header.rows[0];
+    if (!nota) return null;
 
-    const cabecalho = await pool.query(
-      `
-      SELECT
-        nf.id_nota,
-        nf.data_compra,
-        nf.valor_total,
-        s.nome_fantasia AS supermercado,
-        s.endereco_completo
-      FROM nota_fiscal nf
-      INNER JOIN supermercado s ON s.id_supermercado = nf.id_supermercado
-      WHERE nf.id_nota = $1
-      `,
-      [idNota]
+    const items = await pool.query<{
+      id_nota_item: number;
+      id_produto: number | null;
+      nome_produto: string;
+      codigo_barras: string | null;
+      categoria: string | null;
+      unidade: string | null;
+      quantidade: string | number;
+      preco_unitario: string | number;
+    }>(
+      `SELECT
+         ni.id_nota_item,
+         ni.id_produto,
+         ni.nome_produto,
+         ni.codigo_barras,
+         p.categoria,
+         p.unidade_medida AS unidade,
+         ni.quantidade,
+         ni.preco_unitario
+       FROM nota_item ni
+       LEFT JOIN produto p ON p.id_produto = ni.id_produto
+       WHERE ni.id_nota = $1
+       ORDER BY ni.nome_produto ASC, ni.id_nota_item ASC`,
+      [idNota],
     );
 
-    const itens = await pool.query(
-      `
-      SELECT
-        ni.id_produto,
-        p.nome_produto,
-        p.categoria,
-        ni.quantidade,
-        ni.unidade,
-        ni.valor_unitario,
-        (ni.quantidade * ni.valor_unitario) AS subtotal
-      FROM nota_item ni
-      INNER JOIN produto p ON p.id_produto = ni.id_produto
-      WHERE ni.id_nota = $1
-      ORDER BY p.nome_produto
-      `,
-      [idNota]
-    );
+    const itens: CompraItem[] = items.rows.map((row) => {
+      const quantidade = Number(row.quantidade);
+      const precoUnitario = Number(row.preco_unitario);
+      return {
+        id_nota_item: row.id_nota_item,
+        id_produto: row.id_produto,
+        nome_produto: row.nome_produto,
+        codigo_barras: row.codigo_barras,
+        categoria: row.categoria,
+        unidade: row.unidade,
+        quantidade,
+        preco_unitario: precoUnitario,
+        subtotal: subtotalItem({ quantidade, preco_unitario: precoUnitario }),
+      };
+    });
 
     return {
-      nota: cabecalho.rows[0],
-      itens: itens.rows,
+      nota: {
+        id_nota: nota.id_nota,
+        data_compra: toIso(nota.data_compra),
+        id_supermercado: nota.id_supermercado,
+        supermercado: nota.supermercado,
+        endereco: nota.endereco,
+        total: totalDaNota(itens),
+        total_itens: itens.length,
+      },
+      itens,
     };
   }
 
-  static async historicoPrecoProduto(idProduto: string) {
-    const precoAtual = await pool.query(
-      `
-      SELECT
-        s.nome_fantasia AS supermercado,
-        o.preco_atual,
-        o.data_atualizacao
-      FROM oferta_supermercado o
-      INNER JOIN supermercado s ON s.id_supermercado = o.id_supermercado
-      WHERE o.id_produto = $1
-      ORDER BY o.preco_atual ASC
-      `,
-      [idProduto]
+  /**
+   * Preços atuais por supermercado aprovado (oferta_supermercado) e as compras do próprio
+   * usuário para o produto. Itens de notas de outros usuários nunca são expostos.
+   */
+  static async precosDoProduto(userId: number, idProduto: number): Promise<HistoricoPrecoProduto | null> {
+    const product = await pool.query<{
+      id_produto: number;
+      nome_produto: string;
+      marca: string | null;
+      categoria: string | null;
+    }>(
+      `SELECT id_produto, nome_produto, marca, categoria
+       FROM produto
+       WHERE id_produto = $1`,
+      [idProduto],
     );
+    const produto = product.rows[0];
+    if (!produto) return null;
 
-    const historico = await pool.query(
-      `
-      SELECT
-        s.nome_fantasia AS supermercado,
-        hp.preco,
-        hp.registrado_em
-      FROM historico_preco hp
-      INNER JOIN supermercado s ON s.id_supermercado = hp.id_supermercado
-      WHERE hp.id_produto = $1
-      ORDER BY hp.registrado_em DESC
-      LIMIT 50
-      `,
-      [idProduto]
-    );
-
-    const produto = await pool.query(
-      `SELECT nome_produto, categoria FROM produto WHERE id_produto = $1`,
-      [idProduto]
-    );
-
-    if (produto.rows.length === 0) {
-      return null;
-    }
-
-    return {
-      produto: produto.rows[0],
-      precos_atuais: precoAtual.rows,
-      historico: historico.rows,
-    };
-  }
-
-  static async resumoEconomia(idUsuario: number) {
-    const gastoMensal = await pool.query(
-      `
-      SELECT
-        DATE_TRUNC('month', data_compra) AS mes,
-        SUM(valor_total)                  AS total_gasto,
-        COUNT(id_nota)                    AS total_compras
-      FROM nota_fiscal
-      WHERE id_usuario = $1
-      GROUP BY mes
-      ORDER BY mes DESC
-      LIMIT 6
-      `,
-      [idUsuario]
-    );
-
-    const totalGeral = await pool.query(
-      `SELECT COALESCE(SUM(valor_total), 0) AS total
-       FROM nota_fiscal WHERE id_usuario = $1`,
-      [idUsuario]
-    );
-
-    const favoritoResult = await pool.query(
-      `
-      SELECT s.nome_fantasia, COUNT(*) AS visitas
-      FROM nota_fiscal nf
-      INNER JOIN supermercado s ON s.id_supermercado = nf.id_supermercado
-      WHERE nf.id_usuario = $1
-      GROUP BY s.nome_fantasia
-      ORDER BY visitas DESC
-      LIMIT 1
-      `,
-      [idUsuario]
-    );
-
-    return {
-      gasto_mensal: gastoMensal.rows,
-      total_geral: parseFloat(totalGeral.rows[0].total),
-      supermercado_favorito: favoritoResult.rows[0]?.nome_fantasia ?? null,
-      total_notas: gastoMensal.rows.reduce(
-        (acc, row) => acc + parseInt(row.total_compras), 0
+    const [offers, purchases] = await Promise.all([
+      pool.query<{
+        id_supermercado: number;
+        supermercado: string;
+        preco_atual: string | number;
+        preco_fidelidade: string | number | null;
+        fonte: string;
+        data_atualizacao: Date | string | null;
+      }>(
+        `SELECT
+           s.id_supermercado,
+           s.nome_fantasia AS supermercado,
+           o.preco_atual,
+           o.preco_fidelidade,
+           o.fonte,
+           o.data_atualizacao
+         FROM oferta_supermercado o
+         INNER JOIN supermercado s ON s.id_supermercado = o.id_supermercado
+         WHERE o.id_produto = $1
+           AND s.status_cadastro = 'APROVADO'
+         ORDER BY o.preco_atual ASC, s.nome_fantasia ASC`,
+        [idProduto],
       ),
+      pool.query<{
+        id_nota: number;
+        id_supermercado: number;
+        supermercado: string;
+        data_compra: Date | string | null;
+        quantidade: string | number;
+        preco_unitario: string | number;
+      }>(
+        `SELECT
+           n.id_nota,
+           s.id_supermercado,
+           s.nome_fantasia AS supermercado,
+           COALESCE(n.data_emissao, n.processada_em) AS data_compra,
+           ni.quantidade,
+           ni.preco_unitario
+         FROM nota_item ni
+         INNER JOIN nota_fiscal n ON n.id_nota = ni.id_nota
+         INNER JOIN supermercado s ON s.id_supermercado = n.id_supermercado
+         WHERE ni.id_produto = $1
+           AND n.id_usuario = $2
+           AND n.status = 'VALIDA'
+         ORDER BY COALESCE(n.data_emissao, n.processada_em) DESC, ni.id_nota_item DESC
+         LIMIT 50`,
+        [idProduto, userId],
+      ),
+    ]);
+
+    return {
+      produto,
+      precos_atuais: offers.rows.map((row) => ({
+        id_supermercado: row.id_supermercado,
+        supermercado: row.supermercado,
+        preco_atual: Number(row.preco_atual),
+        preco_fidelidade: row.preco_fidelidade == null ? null : Number(row.preco_fidelidade),
+        fonte: row.fonte,
+        data_atualizacao: toIso(row.data_atualizacao),
+      })),
+      minhas_compras: purchases.rows.map((row) => ({
+        id_nota: row.id_nota,
+        id_supermercado: row.id_supermercado,
+        supermercado: row.supermercado,
+        data_compra: toIso(row.data_compra),
+        quantidade: Number(row.quantidade),
+        preco_unitario: Number(row.preco_unitario),
+      })),
     };
   }
 }

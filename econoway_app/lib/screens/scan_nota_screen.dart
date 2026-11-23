@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
+import '../services/nota_service.dart';
 import '../theme/app_theme.dart';
-import '../config/api_config.dart';
+import '../core/network/mensagem_erro.dart';
 
 class ScanNotaScreen extends StatefulWidget {
   const ScanNotaScreen({super.key});
@@ -37,31 +35,29 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
     await _scanner.stop();
 
     try {
-      final token = await AuthService.getToken();
-      final response = await http
-          .post(
-            Uri.parse('${ApiConfig.baseUrl}/notas/processar'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: jsonEncode({'url_qrcode': urlQrCode}),
-          )
-          .timeout(const Duration(seconds: 15));
-
-      final data = jsonDecode(response.body);
-
+      final data = await NotaService.processar(urlQrCode);
       if (!mounted) return;
-
-      response.statusCode == 200
-          ? _mostrarSucesso(data)
-          : _mostrarErro(data['erro'] ?? 'Erro ao processar nota.');
+      _mostrarSucesso(data);
     } catch (e) {
+      debugPrint('Falha ao processar NFC-e: $e');
       if (!mounted) return;
-      _mostrarErro('Não foi possível conectar ao servidor.');
+      _mostrarErro(mensagemDeErro(e));
     }
 
-    setState(() => _processando = false);
+    if (mounted) setState(() => _processando = false);
+  }
+
+  Future<void> _reiniciarLeitura() async {
+    if (!mounted) return;
+    setState(() {
+      _escaneado = false;
+      _processando = false;
+    });
+    try {
+      await _scanner.start();
+    } catch (e) {
+      debugPrint('Falha ao reiniciar a câmera: $e');
+    }
   }
 
   void _mostrarSucesso(Map<String, dynamic> data) {
@@ -84,20 +80,23 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
             Text('Supermercado: ${data['supermercado']}'),
             const SizedBox(height: 4),
             Text('Produtos salvos: ${data['produtos_salvos']}'),
-            const SizedBox(height: 8),
-            const Row(
-              children: [
-                Icon(Icons.bolt, color: AppColors.secondary, size: 16),
-                SizedBox(width: 4),
-                Text(
-                  '+100 EconoCoins',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
+            if ((data['econocoins_creditados'] is num) &&
+                (data['econocoins_creditados'] as num) > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.bolt, color: AppColors.secondary, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+${(data['econocoins_creditados'] as num).toInt()} EconoCoins',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ],
         ),
         actions: [
@@ -114,10 +113,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _escaneado = false;
-                _processando = false;
-              });
+              _reiniciarLeitura();
             },
             child: const Text('Escanear outra'),
           ),
@@ -142,10 +138,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _escaneado = false;
-                _processando = false;
-              });
+              _reiniciarLeitura();
             },
             child: const Text('Tentar novamente'),
           ),
@@ -177,6 +170,7 @@ class _ScanNotaScreenState extends State<ScanNotaScreen> {
               final barcode = capture.barcodes.firstOrNull;
               final url = barcode?.rawValue;
 
+              // Chama _processarQrCode com a URL capturada
               if (url != null && url.isNotEmpty) {
                 _processarQrCode(url);
               }

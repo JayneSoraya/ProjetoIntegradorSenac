@@ -1,129 +1,87 @@
 import { Request, Response } from 'express';
-import { SupermercadoService } from '../services/supermercadoService';
-import { ProdutoService } from '../services/produtoService';
-import { UsuarioService } from '../services/usuarioService'; 
-import { logger } from '../utils/logger';
+import { AdminService } from '../services/adminService';
+import { logger } from '../lib/logger';
 
-// ── GET /api/admin/mercados ────────────────────────────────
-export const listarMercados = async (req: Request, res: Response) => {
+export async function resumoAdmin(_req: Request, res: Response) {
   try {
-    const mercados = await SupermercadoService.listarTodos();
-    return res.status(200).json(mercados);
-  } catch (erro) {
-    logger.error('❌ Erro ao listar mercados:', { erro });
-    return res.status(500).json({ erro: 'Erro ao buscar mercados.' });
+    return res.status(200).json(await AdminService.resumo());
+  } catch (error) {
+    logger.error('admin_summary_failed', error, { requestId: _req.requestId });
+    return res.status(500).json({ erro: 'Erro ao carregar painel administrativo.' });
   }
-};
+}
 
-// ── POST /api/admin/mercados ───────────────────────────────
-export const cadastrarMercado = async (req: Request, res: Response) => {
-  const { cnpj, nome_fantasia, endereco_completo } = req.body;
-
-  if (!cnpj || !nome_fantasia || !endereco_completo) {
-    return res.status(400).json({ erro: 'CNPJ, nome e endereço são obrigatórios.' });
-  }
-
+export async function listarUsuarios(req: Request, res: Response) {
+  const busca = typeof req.query.busca === 'string' ? req.query.busca : '';
+  const limit = Number(req.query.limit ?? 50) || 50;
   try {
-    const novoMercado = await SupermercadoService.cadastrar({
-      nome: nome_fantasia,
-      logradouro: endereco_completo,
-      cnpj,
-    });
-    return res.status(201).json(novoMercado);
-  } catch (erro) {
-    logger.error('❌ Erro ao cadastrar mercado:', { erro });
-    return res.status(500).json({ erro: 'Erro ao cadastrar mercado.' });
+    return res.status(200).json(await AdminService.listarUsuarios(busca, limit));
+  } catch (error) {
+    logger.error('admin_users_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao listar usuários.' });
   }
-};
+}
 
-// ── PUT /api/admin/mercados/:id ────────────────────────────
-export const editarMercado = async (req: Request, res: Response) => {
-  const idParam = req.params.id;
-  const id = typeof idParam === 'string' ? idParam : (Array.isArray(idParam) ? idParam[0] : '');
-  const { nome_fantasia, endereco_completo, esta_aberto } = req.body;
+export async function alterarStatusConta(req: Request, res: Response) {
+  const accountId = Number(req.params.id);
+  const active = req.body?.ativo;
+  if (!Number.isInteger(accountId) || accountId <= 0 || typeof active !== 'boolean') {
+    return res.status(400).json({ erro: 'Dados de conta inválidos.' });
+  }
+  if (req.auth?.accountId === accountId && active === false) {
+    return res.status(409).json({ erro: 'Administrador não pode bloquear a própria conta por este endpoint.' });
+  }
 
   try {
-    const mercadoAtualizado = await SupermercadoService.atualizar(id, {
-      nome: nome_fantasia,
-      logradouro: endereco_completo,
-      esta_aberto,
-    });
-    if (!mercadoAtualizado) {
-      return res.status(404).json({ erro: 'Mercado não encontrado.' });
+    const changed = await AdminService.alterarStatusConta(req.auth!.accountId, accountId, active);
+    return res.status(200).json(changed);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'ACCOUNT_NOT_FOUND') {
+      return res.status(404).json({ erro: 'Conta não encontrada.' });
     }
-    return res.status(200).json(mercadoAtualizado);
-  } catch (erro) {
-    logger.error('❌ Erro ao editar mercado:', { erro });
-    return res.status(500).json({ erro: 'Erro ao editar mercado.' });
+    logger.error('admin_account_status_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao alterar conta.' });
   }
-};
+}
 
-// ── DELETE /api/admin/mercados/:id ─────────────────────────
-export const removerMercado = async (req: Request, res: Response) => {
-  const idParam = req.params.id;
-  const id = typeof idParam === 'string' ? idParam : (Array.isArray(idParam) ? idParam[0] : '');
+export async function listarSupermercadosAdmin(req: Request, res: Response) {
+  const status = typeof req.query.status === 'string' ? req.query.status.toUpperCase() : '';
+  if (status && !['PENDENTE', 'APROVADO', 'SUSPENSO'].includes(status)) {
+    return res.status(400).json({ erro: 'Status inválido.' });
+  }
   try {
-    await SupermercadoService.remover(id);
-    return res.status(200).json({ mensagem: 'Mercado removido.' });
-  } catch (erro) {
-    logger.error('❌ Erro ao remover mercado:', { erro });
-    return res.status(500).json({ erro: 'Erro ao remover mercado.' });
+    return res.status(200).json(await AdminService.listarSupermercados(status));
+  } catch (error) {
+    logger.error('admin_markets_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao listar supermercados.' });
   }
-};
+}
 
-// ── GET /api/admin/usuarios ────────────────────────────────
-export const listarUsuarios = async (req: Request, res: Response) => {
-  const buscaParam = req.query.busca;
-  const busca = typeof buscaParam === 'string' ? buscaParam : '';
-
-  try {
-    const usuarios = await UsuarioService.listarUsuarios(busca);
-    return res.status(200).json(usuarios);
-  } catch (erro) {
-    logger.error('❌ Erro ao listar usuários:', { erro });
-    return res.status(500).json({ erro: 'Erro ao buscar usuários.' });
+export async function alterarStatusSupermercado(req: Request, res: Response) {
+  const marketId = Number(req.params.id);
+  const status = String(req.body?.status ?? '').toUpperCase();
+  if (!Number.isInteger(marketId) || marketId <= 0 || !['PENDENTE', 'APROVADO', 'SUSPENSO'].includes(status)) {
+    return res.status(400).json({ erro: 'Dados do supermercado inválidos.' });
   }
-};
-
-export const bloquearUsuario = async (req: Request, res: Response) => {
-  const idParam = req.params.id;
-  const id = typeof idParam === 'string' ? idParam : (Array.isArray(idParam) ? idParam[0] : '');
-  const { bloquear } = req.body; 
-  try {
-    await UsuarioService.bloquearUsuario(id, bloquear);
-    return res.status(200).json({
-      mensagem: bloquear ? 'Usuário bloqueado.' : 'Usuário desbloqueado.',
-    });
-  } catch (erro) {
-    logger.error('❌ Erro ao bloquear usuário:', { erro });
-    return res.status(500).json({ erro: 'Erro ao bloquear usuário.' });
-  }
-};
-
-// ── PRODUTOS ADMIN ─────────────────────────────────────────
-export const listarProdutosAdmin = async (req: Request, res: Response) => {
-  const buscaParam = req.query.busca;
-  const busca = typeof buscaParam === 'string' ? buscaParam : '';
 
   try {
-    const produtos = await ProdutoService.buscar(busca);
-    return res.status(200).json(produtos);
-  } catch (erro) {
-    logger.error('❌ Erro ao buscar produtos:', { erro });
-    return res.status(500).json({ erro: 'Erro ao buscar produtos.' });
+    const changed = await AdminService.alterarStatusSupermercado(req.auth!.accountId, marketId, status);
+    return res.status(200).json(changed);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'MARKET_NOT_FOUND') {
+      return res.status(404).json({ erro: 'Supermercado não encontrado.' });
+    }
+    logger.error('admin_market_status_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao alterar supermercado.' });
   }
-};
+}
 
-export const corrigirCategoria = async (req: Request, res: Response) => {
-  const idParam = req.params.id;
-  const idStr = typeof idParam === 'string' ? idParam : (Array.isArray(idParam) ? idParam[0] : '');
-  const id = Number(idStr);
-  const { categoria } = req.body;
+export async function listarAuditoria(req: Request, res: Response) {
+  const limit = Number(req.query.limit ?? 50) || 50;
   try {
-    await ProdutoService.corrigirCategoria(id, categoria);
-    return res.status(200).json({ mensagem: 'Categoria atualizada.' });
-  } catch (erro) {
-    logger.error('❌ Erro ao atualizar categoria:', { erro });
-    return res.status(500).json({ erro: 'Erro ao atualizar categoria.' });
+    return res.status(200).json(await AdminService.listarAuditoria(limit));
+  } catch (error) {
+    logger.error('admin_audit_failed', error, { requestId: req.requestId });
+    return res.status(500).json({ erro: 'Erro ao listar auditoria.' });
   }
-};
+}

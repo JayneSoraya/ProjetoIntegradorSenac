@@ -1,23 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-
-declare global {
-  namespace Express {
-    interface Request {
-      auth?: {
-        accountId: number;
-        userId: number | null;
-        role: 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
-      };
-      usuario?: {
-        id_conta: number;
-        id_usuario?: number | null;
-        tipo_conta: 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
-      };
-    }
-  }
-}
+import { StatusConta } from '../domain/statusConta';
+import { StatusContaService } from '../services/statusContaService';
+import { logger } from '../lib/logger';
 
 function readCookie(header: string | undefined, name: string): string {
   if (!header) return '';
@@ -40,7 +26,7 @@ interface TokenPayload extends jwt.JwtPayload {
   tipo_conta?: 'USUARIO' | 'SUPERMERCADO' | 'ADMIN';
 }
 
-export function autenticar(req: Request, res: Response, next: NextFunction) {
+export async function autenticar(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   const bearerToken = authHeader?.startsWith('Bearer ')
     ? authHeader.slice('Bearer '.length).trim()
@@ -52,8 +38,9 @@ export function autenticar(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ erro: 'Token não fornecido.' });
   }
 
+  let payload: TokenPayload;
   try {
-    const payload = jwt.verify(token, env.jwtSecret, {
+    payload = jwt.verify(token, env.jwtSecret, {
       algorithms: ['HS256'],
       issuer: env.jwtIssuer,
       audience: env.jwtAudience,
@@ -66,22 +53,29 @@ export function autenticar(req: Request, res: Response, next: NextFunction) {
     ) {
       return res.status(401).json({ erro: 'Token inválido ou expirado.' });
     }
-
-    req.auth = {
-      accountId: payload.id_conta!,
-      userId: Number.isInteger(payload.id_usuario) ? payload.id_usuario! : null,
-      role: payload.tipo_conta,
-    };
-    req.usuario = {
-      id_conta: payload.id_conta!,
-      id_usuario: payload.id_usuario ?? null,
-      tipo_conta: payload.tipo_conta,
-    };
-
-    return next();
   } catch {
     return res.status(401).json({ erro: 'Token inválido ou expirado.' });
   }
+
+  let status: StatusConta | null;
+  try {
+    status = await StatusContaService.consultar(payload.id_conta!);
+  } catch (error) {
+    logger.error('account_status_check_failed', error, { requestId: req.requestId });
+    return res.status(503).json({ erro: 'Não foi possível validar a sessão. Tente novamente.' });
+  }
+
+  if (!status || !status.ativa || status.perfil !== payload.tipo_conta) {
+    return res.status(401).json({ erro: 'Sessão encerrada. Entre novamente.' });
+  }
+
+  req.auth = {
+    accountId: payload.id_conta!,
+    userId: Number.isInteger(payload.id_usuario) ? payload.id_usuario! : null,
+    role: status.perfil,
+  };
+
+  return next();
 }
 
 export function autorizar(...roles: Array<'USUARIO' | 'SUPERMERCADO' | 'ADMIN'>) {
@@ -97,5 +91,3 @@ export function autorizar(...roles: Array<'USUARIO' | 'SUPERMERCADO' | 'ADMIN'>)
     return next();
   };
 }
-
-export const apenasAdmin = autorizar('ADMIN');

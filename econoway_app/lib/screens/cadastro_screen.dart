@@ -102,7 +102,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
       appBar: AppBar(title: const Text('Cadastro')),
 
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
 
           child: Form(
@@ -169,8 +169,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     if (v == null || v.isEmpty) {
                       return 'Informe a senha';
                     }
-                    if (v.length < 6) {
-                      return 'Mínimo de 6 caracteres';
+                    if (v.length < 8) {
+                      return 'Mínimo de 8 caracteres';
                     }
                     return null;
                   },
@@ -200,7 +200,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   onPressed: _carregando ? null : _cadastrar,
 
                   child: _carregando
-                      ? const CircularProgressIndicator()
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : const Text('Cadastrar'),
                 ),
               ],

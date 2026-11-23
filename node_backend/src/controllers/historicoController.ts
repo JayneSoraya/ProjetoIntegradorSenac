@@ -1,88 +1,61 @@
 import { Request, Response } from 'express';
+import { parsePaginacao, parseResourceId } from '../domain/historico';
+import { logger } from '../lib/logger';
 import { HistoricoService } from '../services/historicoService';
-import { logger } from '../utils/logger';
 
-// Lista todas as notas fiscais do usuário logado
-export const listarCompras = async (req: Request, res: Response) => {
-  if (!req.usuario) {
-    return res.status(401).json({ erro: 'Usuário não autenticado.' });
-  }
+function userIdOf(req: Request): number | null {
+  return req.auth?.userId ?? null;
+}
 
-  const idUsuario = req.usuario.id_usuario ?? req.usuario.id_conta;
+export async function listarCompras(req: Request, res: Response) {
+  const userId = userIdOf(req);
+  if (!userId) return res.status(403).json({ erro: 'Histórico disponível apenas para usuários.' });
 
   try {
-    const resultado = await HistoricoService.listarPorUsuario(idUsuario);
-    return res.status(200).json(resultado);
-  } catch (erro: any) {
-    logger.error('❌ Erro ao listar compras:', { erro: erro.message });
+    const paginacao = parsePaginacao({
+      limite: req.query.limite,
+      deslocamento: req.query.deslocamento,
+    });
+    return res.status(200).json(await HistoricoService.listarCompras(userId, paginacao));
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVALID_PAGINATION') {
+      return res.status(400).json({ erro: 'Parâmetros de paginação inválidos.' });
+    }
+    logger.error('historico_compras_list_failed', error, { requestId: req.requestId, userId });
     return res.status(500).json({ erro: 'Erro ao buscar histórico de compras.' });
   }
-};
+}
 
-// Detalhe de uma nota: lista todos os itens comprados
-export const detalheCompra = async (req: Request, res: Response) => {
-  if (!req.usuario) {
-    return res.status(401).json({ erro: 'Usuário não autenticado.' });
-  }
+export async function detalharCompra(req: Request, res: Response) {
+  const userId = userIdOf(req);
+  if (!userId) return res.status(403).json({ erro: 'Histórico disponível apenas para usuários.' });
 
-  const rawId = req.params.id;
-  const id = Array.isArray(rawId) ? rawId[0] : rawId;
-  const idUsuario = req.usuario.id_usuario ?? req.usuario.id_conta;
-
-  if (!id) {
-    return res.status(400).json({ erro: 'ID da nota não fornecido.' });
-  }
+  const idNota = parseResourceId(req.params.id);
+  if (!idNota) return res.status(400).json({ erro: 'Identificador da nota inválido.' });
 
   try {
-    const detalhe = await HistoricoService.detalharCompra(id, idUsuario);
-
-    if (!detalhe) {
-      return res.status(404).json({ erro: 'Nota não encontrada.' });
-    }
-
+    const detalhe = await HistoricoService.detalharCompra(userId, idNota);
+    if (!detalhe) return res.status(404).json({ erro: 'Compra não encontrada.' });
     return res.status(200).json(detalhe);
-  } catch (erro: any) {
-    logger.error('❌ Erro ao buscar detalhe da compra:', { erro: erro.message });
+  } catch (error) {
+    logger.error('historico_compras_detail_failed', error, { requestId: req.requestId, userId, idNota });
     return res.status(500).json({ erro: 'Erro ao buscar detalhe da compra.' });
   }
-};
+}
 
-// Histórico de variação de preço de um produto específico
-export const historicoPrecoProduto = async (req: Request, res: Response) => {
-  const rawIdProduto = req.params.id_produto;
-  const id_produto = Array.isArray(rawIdProduto) ? rawIdProduto[0] : rawIdProduto;
+export async function precosDoProduto(req: Request, res: Response) {
+  const userId = userIdOf(req);
+  if (!userId) return res.status(403).json({ erro: 'Histórico disponível apenas para usuários.' });
 
-  if (!id_produto) {
-    return res.status(400).json({ erro: 'ID do produto não fornecido.' });
-  }
+  const idProduto = parseResourceId(req.params.idProduto);
+  if (!idProduto) return res.status(400).json({ erro: 'Identificador do produto inválido.' });
 
   try {
-    const dados = await HistoricoService.historicoPrecoProduto(id_produto);
-
-    if (!dados) {
-      return res.status(404).json({ erro: 'Produto não encontrado.' });
-    }
-
+    const dados = await HistoricoService.precosDoProduto(userId, idProduto);
+    if (!dados) return res.status(404).json({ erro: 'Produto não encontrado.' });
     return res.status(200).json(dados);
-  } catch (erro: any) {
-    logger.error('❌ Erro ao buscar histórico de preços:', { erro: erro.message });
-    return res.status(500).json({ erro: 'Erro ao buscar histórico de preços.' });
+  } catch (error) {
+    logger.error('historico_precos_failed', error, { requestId: req.requestId, userId, idProduto });
+    return res.status(500).json({ erro: 'Erro ao buscar preços do produto.' });
   }
-};
-
-// Resumo de economia do usuário
-export const resumoEconomia = async (req: Request, res: Response) => {
-  if (!req.usuario) {
-    return res.status(401).json({ erro: 'Usuário não autenticado.' });
-  }
-
-  const idUsuario = req.usuario.id_usuario ?? req.usuario.id_conta;
-
-  try {
-    const resumo = await HistoricoService.resumoEconomia(idUsuario);
-    return res.status(200).json(resumo);
-  } catch (erro: any) {
-    logger.error('❌ Erro ao buscar resumo:', { erro: erro.message });
-    return res.status(500).json({ erro: 'Erro ao buscar resumo.' });
-  }
-};
+}

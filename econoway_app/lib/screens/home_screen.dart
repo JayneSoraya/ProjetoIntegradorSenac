@@ -1,16 +1,18 @@
-import 'package:econoway_app/screens/historico_compras_screen.dart';
-import 'package:econoway_app/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../controller/carrinho_controller.dart';
+import '../widgets/cart_scope.dart';
 import '../services/economia_service.dart';
+import '../services/carrinho_service.dart';
 import 'carrinho_screen.dart';
-import 'carrinho_vazio_screen.dart';
-import 'welcome_screen.dart';
 import 'produtos_screen.dart';
-import 'admin_screen.dart';
-import 'mercado_home_screen.dart';
+import 'scan_nota_screen.dart';
+import 'historico_screen.dart';
+import 'supermercados_screen.dart';
+import 'perfil_screen.dart';
+import '../widgets/home_quick_action_card.dart';
 import '../widgets/progresso_mapa_widget.dart';
+import '../core/format/formatadores.dart';
 
 class HomeScreen extends StatefulWidget {
   final String nomeUsuario;
@@ -28,30 +30,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   ResumoUsuario? _resumo;
   bool _carregando = true;
-
-  Future<void> _verificarTipoConta() async {
-    final tipo = await AuthService.getTipoConta();
-
-    if (!mounted) return;
-
-    if (tipo == 'MERCADO') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MercadoHomeScreen()),
-        );
-      });
-    } else if (tipo == 'ADMIN') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminScreen()),
-        );
-      });
-    }
-  }
+  late CarrinhoController _cart;
+  bool _cartRestored = false;
+  int _progressoVersao = 0;
 
   @override
   void initState() {
@@ -62,7 +43,26 @@ class _HomeScreenState extends State<HomeScreen>
     );
     _economiaAnim = const AlwaysStoppedAnimation(0);
     _carregarResumo();
-    _verificarTipoConta();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cart = CartScope.of(context);
+    if (!_cartRestored) {
+      _cartRestored = true;
+      _restaurarCarrinho();
+    }
+  }
+
+  Future<void> _restaurarCarrinho() async {
+    try {
+      final itens = await CarrinhoService.carregar();
+      _cart.restaurar(itens);
+      if (mounted) setState(() {});
+    } catch (_) {
+      // O carrinho local continua utilizável se a sincronização estiver indisponível.
+    }
   }
 
   Future<void> _carregarResumo() async {
@@ -80,12 +80,15 @@ class _HomeScreenState extends State<HomeScreen>
         _carregando = false;
       });
       _animController.forward();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _carregando = false;
-      });
+      setState(() => _carregando = false);
     }
+  }
+
+  Future<void> _atualizar() {
+    if (mounted) setState(() => _progressoVersao++);
+    return _carregarResumo();
   }
 
   @override
@@ -96,14 +99,14 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final quantidade = CarrinhoController().quantidadeTotal;
+    final quantidade = _cart.quantidadeTotal;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primary,
-          onRefresh: _carregarResumo,
+          onRefresh: _atualizar,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24.0),
@@ -111,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'SaveMoney',
+                  'EconoWay',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -126,9 +129,16 @@ class _HomeScreenState extends State<HomeScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Olá, ${widget.nomeUsuario}!',
-                      style: const TextStyle(fontSize: 15, color: Colors.grey),
+                    Expanded(
+                      child: Text(
+                        'Olá, ${widget.nomeUsuario}!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
                     Row(
                       children: [
@@ -151,7 +161,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 const Icon(
                                   Icons.bolt,
                                   color: AppColors.secondary,
-                                  size: 15,
+                                  size: 16,
                                 ),
                                 const SizedBox(width: 2),
                                 Text(
@@ -175,17 +185,12 @@ class _HomeScreenState extends State<HomeScreen>
                                 color: AppColors.primary,
                               ),
                               onPressed: () async {
-                                final destino =
-                                    CarrinhoController().itens.isEmpty
-                                    ? const CarrinhoVazioScreen()
-                                    : const CarrinhoScreen();
                                 await Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => destino),
+                                  MaterialPageRoute(
+                                    builder: (_) => const CarrinhoScreen(),
+                                  ),
                                 );
-
-                                if (!context.mounted) return;
-
                                 setState(() {});
                               },
                             ),
@@ -196,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: AppColors.secondary,
+                                    color: Colors.red,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   constraints: const BoxConstraints(
@@ -217,23 +222,18 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
 
-                        // Logout
                         IconButton(
+                          tooltip: 'Perfil',
                           icon: const Icon(
-                            Icons.logout_rounded,
-                            color: Colors.redAccent,
+                            Icons.person_outline,
+                            color: AppColors.primary,
                           ),
-                          onPressed: () async {
-                            await AuthService.logout();
-                            if (!context.mounted) return;
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const WelcomeScreen(),
-                              ),
-                              (route) => false,
-                            );
-                          },
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const PerfilScreen(),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -258,61 +258,28 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   )
                 else if (_resumo != null && !_resumo!.semDados)
-                  _buildCardEconomia(),
+                  _buildCardEconomia()
+                else
+                  _buildCardPrimeiraVez(),
 
-                const SizedBox(height: 15),
-
-                if (!_carregando) const ProgressoMapaWidget(),
-
-                const SizedBox(height: 15),
+                const SizedBox(height: 16),
 
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
                   _buildLinhaDados(),
 
                 if (!_carregando && _resumo != null && !_resumo!.semDados)
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 16),
 
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.co2_rounded,
-                        size: 50,
-                        color: AppColors.primary,
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Emissões de CO₂',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Histórico de gases poluentes reduzidos com base nas distâncias percorridas.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                // ── Progresso mapa ────────────────────────────
+                ProgressoMapaWidget(
+                  versao: _progressoVersao,
+                  onEscanear: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
+                    );
+                    _carregarResumo();
+                  },
                 ),
 
                 const SizedBox(height: 24),
@@ -321,44 +288,58 @@ class _HomeScreenState extends State<HomeScreen>
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.82,
                   children: [
-                    _buildDashboardCard(
-                      context,
+                    HomeQuickActionCard(
                       icon: Icons.local_mall_outlined,
-                      title: 'Listas de Compras',
-                      subtitle: 'Avaliação de menor preço',
+                      title: 'Comparar preços',
+                      subtitle: 'Monte sua cesta',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ProdutosScreen(),
+                        ),
+                      ),
+                    ),
+                    HomeQuickActionCard(
+                      icon: Icons.map_outlined,
+                      title: 'Supermercados',
+                      subtitle: 'Favoritos e disponíveis',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SupermercadosScreen(),
+                        ),
+                      ),
+                    ),
+
+                    HomeQuickActionCard(
+                      icon: Icons.qr_code_scanner,
+                      title: 'Escanear Nota',
+                      subtitle: '+100 por NFC-e válida e inédita',
+                      destaque: true,
                       onTap: () async {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const ProdutosScreen(),
+                            builder: (_) => const ScanNotaScreen(),
                           ),
                         );
-                        if (!context.mounted) return;
+                        _atualizar();
                       },
                     ),
-                    _buildDashboardCard(
-                      context,
-                      icon: Icons.map_outlined,
-                      title: 'Rotas de Viagens',
-                      subtitle: 'Distâncias calculadas',
-                    ),
-                    _buildDashboardCard(
-                      context,
+                    HomeQuickActionCard(
                       icon: Icons.history,
                       title: 'Histórico',
-                      subtitle: 'Suas economias',
-                      onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HistoricoComprasScreen(),
-                          ),
-                        );
-                        if (!context.mounted) return;
-                      },
+                      subtitle: 'Comparações e compras',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HistoricoScreen(),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -383,7 +364,7 @@ class _HomeScreenState extends State<HomeScreen>
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 15,
+            blurRadius: 16,
             offset: const Offset(0, 6),
           ),
         ],
@@ -404,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen>
           AnimatedBuilder(
             animation: _economiaAnim,
             builder: (_, _) => Text(
-              'R\$ ${_economiaAnim.value.toStringAsFixed(2)}',
+              formatarMoeda(_economiaAnim.value),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 42,
@@ -418,17 +399,14 @@ class _HomeScreenState extends State<HomeScreen>
             'comprando no $mercado.',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ProdutosScreen()),
-                );
-                if (!context.mounted) return;
-              },
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProdutosScreen()),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.secondary,
                 foregroundColor: AppColors.backgroundDark,
@@ -448,28 +426,69 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Primeira vez sem histórico de comparação ───────────────
+  Widget _buildCardPrimeiraVez() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.shopping_basket_outlined,
+            size: 36,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Monte sua primeira cesta',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Adicione produtos e compare a mesma compra entre supermercados.',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ProdutosScreen()),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('Buscar produtos'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── Linha: economia do mês + EconoCoins ───────────────────
   Widget _buildLinhaDados() {
-    final scans = _resumo!.totalComparacoes;
-    String nivel = scans >= 21
-        ? 'Ouro'
-        : scans >= 6
-        ? 'Prata'
-        : 'Bronze';
-    Color corNivel = scans >= 21
-        ? Colors.amber
-        : scans >= 6
-        ? Colors.blueGrey.shade400
-        : const Color(0xFFCD7F32);
-
     return Row(
       children: [
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.secondary.withValues(alpha: 0.2),
               ),
@@ -483,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'R\$ ${_resumo!.economiaMes.toStringAsFixed(2)}',
+                  formatarMoeda(_resumo!.economiaMes),
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 20,
@@ -501,10 +520,10 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(width: 12),
         Expanded(
           child: Container(
-            padding: const EdgeInsets.all(15),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.15),
               ),
@@ -512,18 +531,18 @@ class _HomeScreenState extends State<HomeScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'EconoWayer $nivel',
-                  style: TextStyle(
-                    color: corNivel,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const Text(
+                  'EconoCoins',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.bolt, color: AppColors.secondary, size: 18),
+                    const Icon(
+                      Icons.bolt,
+                      color: AppColors.secondary,
+                      size: 18,
+                    ),
                     Text(
                       ' ${_resumo!.econoCoins}',
                       style: const TextStyle(
@@ -534,9 +553,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ],
                 ),
-                const Text(
-                  'EconoCoins',
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                Text(
+                  '${_resumo!.totalNotasValidas} NFC-e ${_resumo!.totalNotasValidas == 1 ? 'válida' : 'válidas'}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
@@ -546,56 +565,5 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _buildDashboardCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    bool destaque = false,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(15),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: destaque
-              ? AppColors.secondary.withValues(alpha: 0.1)
-              : Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: destaque
-                ? AppColors.secondary.withValues(alpha: 0.3)
-                : AppColors.secondary.withValues(alpha: 0.1),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: destaque ? AppColors.secondary : AppColors.secondary,
-              size: 32,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: destaque ? AppColors.primary : Colors.grey,
-                fontSize: 12,
-                fontWeight: destaque ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // ── Card das ações principais ─────────────────────────────
 }

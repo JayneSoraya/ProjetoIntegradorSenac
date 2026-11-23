@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-    
+
       - name: Configurar Python
         uses: actions/setup-python@v5
         with:
@@ -20,13 +20,13 @@ jobs:
 
       - name: Instalar dependências
         run: pip install requests
-    
+
       - name: Executar script de atualização do README
-        env: 
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
         run: python3 scripts/update_readme_langs.py
-    
+
       - name: Commit e push das alterações se houver mudança
         run: |
           git config --global user.name "github-actions[bot]"

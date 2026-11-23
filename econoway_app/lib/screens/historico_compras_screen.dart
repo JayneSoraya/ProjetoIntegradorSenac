@@ -1,12 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
-import '../services/auth_service.dart';
-import '../theme/app_theme.dart';
-import 'historico_detalhe_screen.dart';
-import '../config/api_config.dart';
 
+import '../core/format/formatadores.dart';
+import '../core/network/mensagem_erro.dart';
+import '../models/historico_compras.dart';
+import '../services/historico_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/estado_tela.dart';
+import 'historico_detalhe_screen.dart';
+import 'scan_nota_screen.dart';
+
+/// Lista as notas fiscais (NFC-e) importadas pela pessoa usuária.
 class HistoricoComprasScreen extends StatefulWidget {
   const HistoricoComprasScreen({super.key});
 
@@ -15,11 +18,9 @@ class HistoricoComprasScreen extends StatefulWidget {
 }
 
 class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
-  static const String _baseUrl = '${ApiConfig.baseUrl}/historico';
-
-  List<Map<String, dynamic>> _compras = [];
+  List<CompraResumo> _compras = [];
   bool _carregando = true;
-  String _erro = '';
+  String? _erro;
 
   @override
   void initState() {
@@ -30,211 +31,143 @@ class _HistoricoComprasScreenState extends State<HistoricoComprasScreen> {
   Future<void> _carregar() async {
     setState(() {
       _carregando = true;
-      _erro = '';
+      _erro = null;
     });
     try {
-      final token = await AuthService.getToken();
-      final response = await http
-          .get(
-            Uri.parse('$_baseUrl/compras'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        setState(() {
-          _compras = data.cast<Map<String, dynamic>>();
-          _carregando = false;
-        });
-      } else {
-        setState(() {
-          _carregando = false;
-          _erro = 'Erro ${response.statusCode}';
-        });
-      }
-    } catch (e) {
+      final compras = await HistoricoService.listarCompras();
+      if (!mounted) return;
       setState(() {
+        _compras = compras;
         _carregando = false;
-        _erro = 'Falha na conexão: $e';
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _erro = mensagemDeErro(
+          erro,
+          padrao:
+              'Não foi possível carregar suas compras. Verifique sua conexão e tente novamente.',
+        );
+        _carregando = false;
       });
     }
   }
 
-  String _formatarData(String? dataStr) {
-    if (dataStr == null) return '—';
-    try {
-      final data = DateTime.parse(dataStr);
-      return DateFormat('dd/MM/yyyy', 'pt_BR').format(data);
-    } catch (_) {
-      return dataStr;
-    }
-  }
-
-  String _formatarValor(dynamic valor) {
-    if (valor == null) return 'R\$ 0,00';
-    final v = double.tryParse(valor.toString()) ?? 0;
-    return 'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
+  Future<void> _abrirScanner() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
+    );
+    if (mounted) _carregar();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Minhas Compras'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _carregar),
-        ],
+      appBar: AppBar(title: const Text('Minhas compras')),
+      body: _corpo(),
+    );
+  }
+
+  Widget _corpo() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_erro != null) {
+      return EstadoErro(mensagem: _erro!, onTentarNovamente: _carregar);
+    }
+    if (_compras.isEmpty) {
+      return EstadoVazio(
+        icone: Icons.receipt_long_outlined,
+        titulo: 'Nenhuma compra importada ainda',
+        mensagem:
+            'Escaneie o QR Code de uma NFC-e para registrar sua compra e ajudar a atualizar os preços.',
+        rotuloAcao: 'Escanear nota',
+        onAcao: _abrirScanner,
+      );
+    }
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _carregar,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        itemCount: _compras.length,
+        itemBuilder: (_, indice) => _CompraCard(compra: _compras[indice]),
       ),
-      body: _carregando
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _erro.isNotEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 12),
-                  Text(
-                    _erro,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _carregar,
-                    child: const Text('Tentar novamente'),
-                  ),
-                ],
+    );
+  }
+}
+
+class _CompraCard extends StatelessWidget {
+  final CompraResumo compra;
+  const _CompraCard({required this.compra});
+
+  @override
+  Widget build(BuildContext context) {
+    final itens = compra.totalItens;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HistoricoDetalheScreen(idNota: compra.idNota),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.receipt_long_outlined,
+                  color: AppColors.primary,
+                  size: 26,
+                ),
               ),
-            )
-          : _compras.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long_outlined,
-                    size: 72,
-                    color: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Nenhuma compra registrada ainda.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Escaneie uma nota fiscal para começar.',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _compras.length,
-              itemBuilder: (_, i) {
-                final c = _compras[i];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 2,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            HistoricoDetalheScreen(idNota: c['id_nota']),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      compra.supermercado,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          // Ícone
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.receipt_long_outlined,
-                              color: AppColors.primary,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-
-                          // Dados
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  c['supermercado'] ?? '—',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatarData(c['data_compra']),
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${c['total_itens'] ?? 0} produtos',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Valor + seta
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                _formatarValor(c['valor_total']),
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${formatarData(compra.dataCompra)} · $itens ${itens == 1 ? 'produto' : 'produtos'}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
                     ),
-                  ),
-                );
-              },
-            ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                formatarMoeda(compra.total),
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

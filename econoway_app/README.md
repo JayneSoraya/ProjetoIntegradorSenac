@@ -1,17 +1,39 @@
-# econoway_app
+# EconoWay Android
 
-A new Flutter project.
+Aplicativo Flutter do consumidor.
 
-## Getting Started
+## Papel no produto
 
-This project is a starting point for a Flutter application.
+- buscar produtos;
+- montar/sincronizar carrinho;
+- favoritar/selecionar supermercados;
+- comparar a mesma cesta;
+- distinguir comparação completa/parcial e preço desatualizado;
+- salvar/consultar histórico;
+- contribuir com NFC-e válida;
+- consultar EconoCoins/perfil.
 
-A few resources to get you started if this is your first Flutter project:
+Supermercado e administração **não** são operados neste app; usam `web_frontend`.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Executar
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter pub get
+dart format lib test
+flutter analyze
+flutter test
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3333/api
+```
+
+`10.0.2.2` vale para Android Emulator. Builds de produção exigem HTTPS.
+
+## Segurança
+
+- JWT em secure storage;
+- nenhum token em log;
+- cleartext desabilitado no manifest principal;
+- URLs passam por `AppConfig`/`ApiClient`.
+
+## Arquitetura
+
+A estrutura atual está em transição para feature-first/MVVM. Não adicionar HTTP diretamente em screens. A direção canônica está em `../docs/architecture/mobile-architecture.md`.

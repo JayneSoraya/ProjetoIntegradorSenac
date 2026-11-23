@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta oficial do SaveMoney
+/// Paleta oficial do EconoWay.
 /// Conceito visual: tecnologia + economia + sustentabilidade.
 class AppColors {
   static const Color primary = Color(

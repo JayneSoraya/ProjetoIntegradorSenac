@@ -1,68 +1,72 @@
 import 'package:flutter/material.dart';
 
+/// Nível de contribuição da pessoa usuária, derivado do total de notas importadas.
 class NivelEconoWayer {
   final String nome;
-  final String subtituloSocial;
+  final String descricao;
   final Color cor;
   final IconData icone;
-  final int minScans;
-  final int? maxScans;
+  final int minNotas;
+  final int? maxNotas;
 
-  NivelEconoWayer({
+  const NivelEconoWayer({
     required this.nome,
-    required this.subtituloSocial,
+    required this.descricao,
     required this.cor,
     required this.icone,
-    required this.minScans,
-    this.maxScans,
+    required this.minNotas,
+    this.maxNotas,
   });
 
-  /// Calcula o nível atual com base no total de notas escaneadas
-  static NivelEconoWayer obterNivel(int totalScans) {
-    if (totalScans >= 21) {
-      return NivelEconoWayer(
+  static const int notasPrata = 6;
+  static const int notasOuro = 21;
+
+  static NivelEconoWayer obterNivel(int totalNotas) {
+    if (totalNotas >= notasOuro) {
+      return const NivelEconoWayer(
         nome: 'EconoWayer Ouro',
-        subtituloSocial:
-            '👑 Você é uma lenda! Ajuda toda Araraquara a economizar.',
-        cor: const Color(0xFFFFD700), // Dourado
+        descricao: 'Referência na comunidade: suas notas mantêm o mapa vivo.',
+        cor: Color(0xFFB8860B),
         icone: Icons.workspace_premium_rounded,
-        minScans: 21,
-        maxScans: null,
+        minNotas: notasOuro,
       );
-    } else if (totalScans >= 6) {
-      return NivelEconoWayer(
+    }
+    if (totalNotas >= notasPrata) {
+      return const NivelEconoWayer(
         nome: 'EconoWayer Prata',
-        subtituloSocial:
-            '🥈 Caçador de Ofertas! Araraquara economiza com você.',
-        cor: const Color(0xFFC0C0C0), // Prateado
+        descricao: 'Caçador de ofertas: seus preços ajudam outras pessoas.',
+        cor: Color(0xFF708090),
         icone: Icons.verified_rounded,
-        minScans: 6,
-        maxScans: 20,
-      );
-    } else {
-      return NivelEconoWayer(
-        nome: 'EconoWayer Bronze',
-        subtituloSocial:
-            '🥉 Explorador Local! Começando a transformar suas compras.',
-        cor: const Color(0xFFCD7F32), // Bronze
-        icone: Icons.shield_rounded,
-        minScans: 1,
-        maxScans: 5,
+        minNotas: notasPrata,
+        maxNotas: notasOuro - 1,
       );
     }
+    return const NivelEconoWayer(
+      nome: 'EconoWayer Bronze',
+      descricao: 'Explorador local: cada nota importada melhora o mapa.',
+      cor: Color(0xFFCD7F32),
+      icone: Icons.shield_rounded,
+      minNotas: 0,
+      maxNotas: notasPrata - 1,
+    );
   }
 
-  static int scansParaProximoNivel(int totalScans) {
-    if (totalScans < 6) return 6 - totalScans;
-    if (totalScans < 21) return 21 - totalScans;
-    return 0; // Nível máximo atingido
+  /// Notas que faltam para o próximo nível (0 no nível máximo).
+  static int notasParaProximoNivel(int totalNotas) {
+    if (totalNotas < notasPrata) return notasPrata - totalNotas;
+    if (totalNotas < notasOuro) return notasOuro - totalNotas;
+    return 0;
   }
 
-  static double progressoDoNivel(int totalScans) {
-    if (totalScans >= 21) return 1.0;
-    if (totalScans >= 6) {
-      return ((totalScans - 6) / (20 - 6)).clamp(0.0, 1.0);
+  /// Progresso (0 a 1) dentro do nível atual.
+  static double progressoDoNivel(int totalNotas) {
+    if (totalNotas >= notasOuro) return 1.0;
+    if (totalNotas >= notasPrata) {
+      return ((totalNotas - notasPrata) / (notasOuro - notasPrata)).clamp(
+        0.0,
+        1.0,
+      );
     }
-    return (totalScans / 5).clamp(0.0, 1.0);
+    return (totalNotas / notasPrata).clamp(0.0, 1.0);
   }
 }

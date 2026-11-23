@@ -1,109 +1,96 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import '../services/auth_service.dart';
+
+import '../core/network/mensagem_erro.dart';
+import '../helpers/nivel_helper.dart';
+import '../models/progresso_contribuicao.dart';
+import '../services/historico_service.dart';
 import '../theme/app_theme.dart';
-import '../screens/scan_nota_screen.dart';
-import '../config/api_config.dart';
 
+/// Card da home com o progresso de contribuição da pessoa usuária ao mapa de preços.
+/// O progresso é informativo: nunca bloqueia comparações.
 class ProgressoMapaWidget extends StatefulWidget {
-  final bool autoCarregar;
+  /// Abre o fluxo de escaneamento de nota. O widget recarrega ao retornar.
+  final Future<void> Function()? onEscanear;
 
-  final VoidCallback? onTap;
+  /// Altere o valor para forçar uma nova consulta (ex.: puxar para atualizar).
+  final int versao;
 
-  const ProgressoMapaWidget({super.key, this.autoCarregar = true, this.onTap});
+  /// Permite injetar o carregamento (testes).
+  final Future<ProgressoContribuicao> Function()? carregador;
+
+  const ProgressoMapaWidget({
+    super.key,
+    this.onEscanear,
+    this.versao = 0,
+    this.carregador,
+  });
 
   @override
   State<ProgressoMapaWidget> createState() => _ProgressoMapaWidgetState();
 }
 
-class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _barraAnim;
-
-  double _progresso = 0;
-  int _scansFeitos = 0;
-  int _metaScans = 10;
-  int _produtosComPreco = 0;
-  int _metaProdutos = 50;
+class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget> {
+  ProgressoContribuicao? _progresso;
   bool _carregando = true;
+  String? _erro;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    _barraAnim = Tween<double>(begin: 0, end: 0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
-    if (widget.autoCarregar) _carregar();
+    _carregar();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProgressoMapaWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.versao != widget.versao) _carregar();
   }
 
   Future<void> _carregar() async {
+    setState(() {
+      _carregando = _progresso == null;
+      _erro = null;
+    });
     try {
-      final token = await AuthService.getToken();
-      final response = await http
-          .get(
-            Uri.parse('${ApiConfig.baseUrl}/progresso'),
-            headers: {'Authorization': 'Bearer $token'},
-          )
-          .timeout(const Duration(seconds: 8));
-
-      if (response.statusCode == 200 && mounted) {
-        final data = jsonDecode(response.body);
-        final progressoReal =
-            (data['progresso'] as num?)?.toDouble().clamp(0.0, 1.0) ?? 0.0;
-        setState(() {
-          _progresso = progressoReal;
-          _scansFeitos = data['scans_feitos'] ?? 0;
-          _metaScans = data['meta_scans'] ?? 10;
-          _produtosComPreco = data['produtos_com_preco'] ?? 0;
-          _metaProdutos = data['meta_produtos'] ?? 50;
-          _carregando = false;
-        });
-
-        // Anima a barra para o valor real
-        _barraAnim = Tween<double>(begin: 0, end: progressoReal).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+      final carregar = widget.carregador ?? HistoricoService.buscarProgresso;
+      final progresso = await carregar();
+      if (!mounted) return;
+      setState(() {
+        _progresso = progresso;
+        _carregando = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _erro = mensagemDeErro(
+          erro,
+          padrao: 'Não foi possível carregar seu progresso agora.',
         );
-        _animController.forward(from: 0);
-      }
-    } catch (e) {
-      debugPrint('ERRO PROGRESSO: $e');
-
-      if (mounted) {
-        setState(() {
-          _carregando = false;
-        });
-      }
+        _carregando = false;
+      });
     }
   }
 
-  /// Recarrega os dados externamente (ex: após escanear nota)
-  Future<void> recarregar() => _carregar();
-
-  int get _faltamScans => (_metaScans - _scansFeitos).clamp(0, _metaScans);
-
-  bool get _completo => _progresso >= 1.0;
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
+  Future<void> _escanear() async {
+    await widget.onEscanear?.call();
+    if (mounted) _carregar();
   }
+
+  BoxDecoration get _moldura => BoxDecoration(
+    color: AppColors.primary.withValues(alpha: 0.05),
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(
+      color: AppColors.primary.withValues(alpha: 0.2),
+      width: 1.5,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
     if (_carregando) {
       return Container(
         height: 90,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(18),
-        ),
+        decoration: _moldura,
         child: const Center(
           child: SizedBox(
             width: 20,
@@ -117,59 +104,74 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
       );
     }
 
+    final progresso = _progresso;
+    if (progresso == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: _moldura,
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off_outlined, color: Colors.grey),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _erro ?? 'Progresso indisponível.',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            TextButton(onPressed: _carregar, child: const Text('Tentar')),
+          ],
+        ),
+      );
+    }
+
+    final nivel = NivelEconoWayer.obterNivel(progresso.notasImportadas);
+    final faltamNivel = NivelEconoWayer.notasParaProximoNivel(
+      progresso.notasImportadas,
+    );
+    final percentual = (progresso.progresso * 100).round();
+
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-      ),
+      decoration: _moldura,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Cabeçalho ─────────────────────────────────
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.15),
+                  color: AppColors.secondary.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  _completo
-                      ? Icons.lock_open_rounded
-                      : Icons.lock_outline_rounded,
+                child: const Icon(
+                  Icons.map_outlined,
                   color: AppColors.primary,
-                  size: 16,
+                  size: 18,
                 ),
               ),
               const SizedBox(width: 8),
               const Expanded(
                 child: Text(
-                  'Mapa de preços de Araraquara',
+                  'Mapa de preços',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 15,
                     color: AppColors.primary,
                   ),
                 ),
               ),
-              // Badge de porcentagem
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${(_progresso * 100).toInt()}% completo',
+                  '$percentual%',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -179,105 +181,102 @@ class _ProgressoMapaWidgetState extends State<ProgressoMapaWidget>
               ),
             ],
           ),
-
           const SizedBox(height: 14),
-
-          // ── Barra animada ──────────────────────────────
-          AnimatedBuilder(
-            animation: _barraAnim,
-            builder: (_, _) => ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(
-                value: _barraAnim.value,
-                minHeight: 12,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: TweenAnimationBuilder<double>(
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeOutCubic,
+              tween: Tween<double>(begin: 0, end: progresso.progresso),
+              builder: (_, valor, _) => LinearProgressIndicator(
+                value: valor,
+                minHeight: 10,
                 backgroundColor: Colors.grey.shade200,
                 valueColor: AlwaysStoppedAnimation(
-                  _completo ? Colors.amber : AppColors.secondary,
+                  progresso.concluido ? nivel.cor : AppColors.secondary,
                 ),
               ),
             ),
           ),
-
+          const SizedBox(height: 12),
+          Text(
+            progresso.mensagem,
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
           const SizedBox(height: 10),
-
-          // ── Texto de tensão cognitiva ──────────────────
-          Row(
+          Wrap(
+            spacing: 16,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: _completo
-                    ? const Text(
-                        '🎉 Você ajudou a completar o mapa de Araraquara!',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      )
-                    : Text(
-                        'Faltam $_faltamScans ${_faltamScans == 1 ? 'scan' : 'scans'} '
-                        'para desbloquear a comparação com TODOS os mercados.',
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-              ),
-              if (!_completo)
-                const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.primary,
-                  size: 20,
-                ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // ── Sub-info ───────────────────────────────────
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _subInfo(
+              _Info(
                 icone: Icons.qr_code_scanner,
-                label: '$_scansFeitos scans feitos',
+                texto:
+                    '${progresso.notasImportadas}/${progresso.metaNotas} notas',
               ),
-              _subInfo(
+              _Info(
                 icone: Icons.inventory_2_outlined,
-                label: '$_produtosComPreco/$_metaProdutos produtos',
+                texto:
+                    '${progresso.produtosComPreco}/${progresso.metaProdutos} produtos com preço',
               ),
             ],
           ),
-
-          const SizedBox(height: 14),
-
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ScanNotaScreen()),
-                );
-
-                await recarregar();
-              },
-              icon: const Icon(Icons.qr_code_scanner),
-              label: const Text('Escanear nota fiscal'),
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(nivel.icone, color: nivel.cor, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  faltamNivel == 0
+                      ? '${nivel.nome} · nível máximo'
+                      : '${nivel.nome} · faltam $faltamNivel ${faltamNivel == 1 ? 'nota' : 'notas'} para o próximo nível',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: nivel.cor,
+                  ),
+                ),
+              ),
+            ],
           ),
+          if (widget.onEscanear != null) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _escanear,
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Escanear nota fiscal'),
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
+}
 
-  Widget _subInfo({required IconData icone, required String label}) {
-    return Row(
-      children: [
-        Icon(icone, size: 13, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 11)),
-      ],
-    );
-  }
+class _Info extends StatelessWidget {
+  final IconData icone;
+  final String texto;
+  const _Info({required this.icone, required this.texto});
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icone, size: 14, color: Colors.grey),
+      const SizedBox(width: 4),
+      Flexible(
+        child: Text(
+          texto,
+          style: const TextStyle(color: Colors.grey, fontSize: 11.5),
+        ),
+      ),
+    ],
+  );
 }

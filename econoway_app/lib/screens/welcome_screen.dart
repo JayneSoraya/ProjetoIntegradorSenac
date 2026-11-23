@@ -41,7 +41,7 @@ class WelcomeScreen extends StatelessWidget {
 
               // NOME DO APP
               const Text(
-                'SaveMoney',
+                'EconoWay',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
@@ -82,13 +82,6 @@ class WelcomeScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 20),
-              // WelcomeScreen — abaixo do botão "Entrar no App"
-              //FutureBuilder<String>(
-              // future: _buscarFraseSocial(),
-              //builder: (_, snap) => snap.hasData
-              // ? Text(snap.data!, style: TextStyle(color: Colors.grey, fontSize: 13))
-              //: const SizedBox(),
-              //),
             ],
           ),
         ),

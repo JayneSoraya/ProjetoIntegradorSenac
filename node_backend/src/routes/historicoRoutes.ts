@@ -1,25 +1,19 @@
 import { Router } from 'express';
-import { autenticar } from '../middleware/authMiddleware';
-import {
-  listarCompras,
-  detalheCompra,
-  historicoPrecoProduto,
-  resumoEconomia,
-} from '../controllers/historicoController';
+import { detalharCompra, listarCompras, precosDoProduto } from '../controllers/historicoController';
+import { autenticar, autorizar } from '../middleware/authMiddleware';
+import { fixedWindowRateLimit } from '../middleware/securityMiddleware';
 
 const router = Router();
+const leituraRateLimit = fixedWindowRateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  scope: 'account',
+  message: 'Muitas consultas ao histórico. Aguarde um instante e tente novamente.',
+});
 
-// Todas protegidas por JWT
-router.use(autenticar);
-
-// Histórico de compras do usuário
-router.get('/compras',           listarCompras);
-router.get('/compras/:id',       detalheCompra);
-
-// Histórico de preço de um produto
-router.get('/precos/:id_produto', historicoPrecoProduto);
-
-// Resumo de economia (HomeScreen)
-router.get('/resumo',            resumoEconomia);
+router.use(autenticar, autorizar('USUARIO'), leituraRateLimit);
+router.get('/compras', listarCompras);
+router.get('/compras/:id', detalharCompra);
+router.get('/precos/:idProduto', precosDoProduto);
 
 export default router;

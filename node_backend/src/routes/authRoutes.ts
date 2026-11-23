@@ -1,19 +1,15 @@
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
-import { cadastrarUsuario, loginUsuario } from '../controllers/authController'
+import { cadastrarUsuario, loginUsuario, logout, minhaConta, recuperarSenha } from '../controllers/authController';
+import { autenticar } from '../middleware/authMiddleware';
+import { fixedWindowRateLimit, loginRateLimit } from '../middleware/securityMiddleware';
 
 const router = Router();
-const authLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutos
-  max: 5,
-  message: 'Muitas requisições feitas a partir deste IP, por favor tente novamente mais tarde.',
-});
+const registrationRateLimit = fixedWindowRateLimit({ windowMs: 60 * 60 * 1000, max: 20, scope: 'ip' });
 
-router.use(authLimiter);
-
-router.post('/cadastro', cadastrarUsuario);
-router.post('/login', loginUsuario);
-
+router.post('/cadastro', registrationRateLimit, cadastrarUsuario);
+router.post('/login', loginRateLimit, loginUsuario);
+router.post('/logout', logout);
+router.post('/recuperar-senha', recuperarSenha);
+router.get('/me', autenticar, minhaConta);
 
 export default router;
-
