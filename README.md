@@ -164,10 +164,10 @@ A API é um monólito modular, organizado em rotas, controladores, serviços, re
 | Linguagem | Participação | Uso no projeto |
 | --- | ---: | --- |
 | TypeScript | 46.1% | API Node.js e portal web React |
-| Dart | 42.1% | Aplicativo Android (Flutter) |
+| Dart | 42.2% | Aplicativo Android (Flutter) |
 | C++ | 4.8% | Arquivos gerados pelo Flutter para outras plataformas |
 | CMake | 3.7% | Arquivos gerados pelo Flutter para outras plataformas |
-| Python | 1.3% | Scripts de verificação e automação |
+| Python | 1.2% | Scripts de verificação e automação |
 
 </details>
 <!--END_LANGS-->
